@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>每日摄入消耗台账</title>
+<style>
+:root{
+--bg:#f4f5f7; --card:#ffffff; --line:#e3e6ea; --line2:#eef0f3;
+--txt:#1f2937; --txt2:#5b6472; --txt3:#8a94a3;
+--accent:#0f766e; --accent-soft:#e6f4f2;
+--good:#047857; --good-bg:#e7f6ef; --bad:#b91c1c; --bad-bg:#fdeceb;
+--warn:#b45309; --warn-bg:#fdf3e3;
+--blue:#1d4ed8; --blue-bg:#eaf0fe;
+--radius:8px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+background:var(--bg); color:var(--txt);
+font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",'Segoe UI',sans-serif;
+font-size:14px; line-height:1.55; -webkit-text-size-adjust:100%;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:16px 14px 56px;}
+h1,h2,h3{margin:0;font-weight:600;}
+a{color:var(--accent);}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum";}
+/* ---------- header ---------- */
+header.top{
+display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 16px;
+padding:14px 16px;background:var(--card);border:1px solid var(--line);
+border-radius:var(--radius);border-left:4px solid var(--accent);
+}
+header.top .t-main{flex:1 1 260px;min-width:220px;}
+header.top h1{font-size:19px;letter-spacing:.5px;}
+header.top .sub{color:var(--txt3);font-size:12px;margin-top:2px;}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap;}
+/* ---------- generic card ---------- */
+.card{
+background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+padding:14px 16px;margin-top:14px;
+}
+.card > .hd{
+display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+border-bottom:1px solid var(--line2);padding-bottom:9px;margin-bottom:12px;
+}
+.card > .hd h2{font-size:15px;}
+.card > .hd .hint{font-size:12px;color:var(--txt3);font-weight:400;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.grid2 > *{min-width:0;}
+@media (max-width:860px){ .grid2{grid-template-columns:1fr;} }
+/* ---------- form ---------- */
+label.fl{display:block;font-size:12px;color:var(--txt2);margin-bottom:3px;}
+input[type=text],input[type=number],input[type=date],input[type=time],select{
+width:100%;min-height:44px;padding:9px 11px;font-size:16px;color:var(--txt);
+border:1px solid var(--line);border-radius:6px;background:#fff;font-family:inherit;
+-webkit-appearance:none;appearance:none;box-sizing:border-box;
+}
+/* 日期/时间控件默认高度不随 padding 走，需单独兜底 */
+input[type=date],input[type=time]{
+min-height:44px;height:44px;line-height:1.2;
+}
+input[type=date]::-webkit-date-and-time-value,
+input[type=time]::-webkit-date-and-time-value{
+text-align:left;min-height:24px;
+}
+select{background-image:linear-gradient(45deg,transparent 50%,#8a94a3 50%),linear-gradient(135deg,#8a94a3 50%,transparent 50%);
+background-position:calc(100% - 15px) 50%,calc(100% - 10px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;padding-right:28px;}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+input[readonly]{background:#fafbfc;color:var(--txt2);}
+.field{margin-bottom:0;}
+.fields{display:grid;gap:10px 12px;}
+.fields > *{min-width:0;}
+.row-item > .field{min-width:0;}
+.fields.c5{grid-template-columns:repeat(5,1fr);}
+.fields.c4{grid-template-columns:repeat(4,1fr);}
+.fields.c3{grid-template-columns:repeat(3,1fr);}
+.fields.c2{grid-template-columns:repeat(2,1fr);}
+@media (max-width:860px){
+.fields.c5,.fields.c4{grid-template-columns:repeat(2,1fr);}
+.fields.c3{grid-template-columns:repeat(2,1fr);}
+}
+.btn{
+display:inline-flex;align-items:center;justify-content:center;gap:5px;
+min-height:40px;padding:9px 15px;font-size:14px;font-family:inherit;cursor:pointer;
+border:1px solid var(--line);background:#fff;color:var(--txt);border-radius:6px;
+transition:.15s;white-space:nowrap;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn.primary:hover{background:#0b5d56;color:#fff;}
+.btn.ghost{border-color:transparent;color:var(--txt2);padding:6px 8px;}
+.btn.ghost:hover{color:var(--accent);border-color:var(--line);}
+.btn.danger:hover{border-color:var(--bad);color:var(--bad);}
+.btn.sm{min-height:36px;padding:7px 12px;font-size:13px;}
+.btn.tiny{min-height:36px;padding:7px 11px;font-size:13px;}
+/* ---------- item rows ---------- */
+.rows{display:flex;flex-direction:column;gap:8px;}
+.row-item{display:grid;gap:8px;align-items:end;padding:9px 10px;border:1px solid var(--line2);border-radius:6px;background:#fcfcfd;}
+.row-item.food{grid-template-columns:2.1fr .75fr .8fr 40px;}
+.row-item.ex{grid-template-columns:1.9fr .65fr .6fr .75fr 40px;}
+@media (max-width:700px){
+.row-item.food{grid-template-columns:1fr 1fr;}
+.row-item.ex{grid-template-columns:1fr 1fr 1fr;}
+.row-item .span2{grid-column:span 2;}
+.row-item .del{justify-self:end;}
+}
+.manual{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding-top:8px;margin-top:4px;border-top:1px dashed var(--line);}
+@media (max-width:700px){ .manual{grid-template-columns:repeat(2,1fr);} }
+.manual .mf{font-size:11px;color:var(--txt2);}
+.manual input{min-height:40px;padding:8px 10px;font-size:16px;}
+.tag{display:inline-block;font-size:11px;padding:1px 6px;border-radius:4px;background:var(--accent-soft);color:var(--accent);}
+.tag.warn{background:var(--warn-bg);color:var(--warn);}
+.tag.blue{background:var(--blue-bg);color:var(--blue);}
+.empty{color:var(--txt3);font-size:12px;padding:8px 0;}
+.del{width:40px;height:40px;padding:0;font-size:17px;line-height:1;color:var(--txt3);border:1px solid transparent;background:none;cursor:pointer;border-radius:5px;}
+.del:hover{color:var(--bad);background:var(--bad-bg);}
+.mini-add{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+/* ---------- tables ---------- */
+.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{padding:7px 9px;text-align:right;border-bottom:1px solid var(--line2);white-space:nowrap;}
+th{background:#f7f8f9;color:var(--txt2);font-weight:600;font-size:12px;border-bottom:1px solid var(--line);}
+td:first-child,th:first-child{text-align:left;}
+tbody tr:hover{background:#fafbfc;}
+tr.sum td{font-weight:600;background:#f7f8f9;border-top:1px solid var(--line);border-bottom:none;}
+tfoot tr td{font-weight:600;}
+.small{font-size:12px;color:var(--txt3);}
+/* ---------- metric cards ---------- */
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+@media (max-width:860px){ .metrics{grid-template-columns:repeat(2,1fr);} }
+.metric{border:1px solid var(--line);border-radius:6px;padding:10px 12px;background:#fff;}
+.metric .k{font-size:12px;color:var(--txt2);display:flex;justify-content:space-between;gap:6px;}
+.metric .v{font-size:22px;font-weight:600;margin-top:2px;letter-spacing:.5px;}
+.metric .u{font-size:12px;color:var(--txt3);font-weight:400;margin-left:2px;}
+.metric .s{font-size:11px;color:var(--txt3);margin-top:1px;}
+.metric.gap-deficit{background:var(--good-bg);border-color:#bfe5d3;}
+.metric.gap-deficit .v{color:var(--good);}
+.metric.gap-surplus{background:var(--bad-bg);border-color:#f3c9c6;}
+.metric.gap-surplus .v{color:var(--bad);}
+/* ---------- bars ---------- */
+.bar{height:9px;border-radius:5px;background:#edeff2;overflow:hidden;margin:7px 0 5px;}
+.bar > i{display:block;height:100%;border-radius:5px;background:var(--accent);transition:width .25s;}
+.bar > i.ok{background:var(--good);}
+.bar > i.over{background:var(--blue);}
+.bar > i.low{background:var(--warn);}
+.verdict{font-size:15px;font-weight:600;}
+.verdict.ok{color:var(--good);}
+.verdict.low{color:var(--warn);}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;font-size:13px;}
+.kv .r{display:flex;justify-content:space-between;border-bottom:1px dotted var(--line);padding-bottom:3px;}
+.kv .r b{font-weight:600;}
+/* ---------- sync / import（增量新增，未改动任何既有样式） ---------- */
+textarea#impText{
+width:100%;min-height:120px;resize:vertical;
+font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;line-height:1.5;
+border:1px solid var(--line);border-radius:8px;padding:8px 10px;
+background:#fff;color:var(--txt);box-sizing:border-box;
+}
+textarea#impText:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft);}
+.imp-log{margin-top:10px;font-size:12.5px;line-height:1.7;}
+.imp-log .ok{color:var(--good);font-weight:600;}
+.imp-log .bad{color:#c0392b;font-weight:600;}
+.imp-log .warn{color:var(--warn);font-weight:600;}
+.imp-log ul{margin:6px 0 0;padding-left:18px;}
+.imp-log li{margin-bottom:2px;}
+.imp-log code{background:#f5f6f8;padding:1px 4px;border-radius:4px;font-size:12px;}
+/* ---------- chart ---------- */
+.chart-box{width:100%;overflow-x:auto;}
+svg.chart{display:block;width:100%;min-width:320px;height:auto;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--txt2);margin-top:6px;}
+.legend i{display:inline-block;width:16px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px;}
+/* ---------- misc ---------- */
+.notes{font-size:12.5px;color:var(--txt2);}
+.notes code{background:#f2f4f6;padding:1px 5px;border-radius:4px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#334155;}
+.notes ul{margin:6px 0 0;padding-left:18px;}
+.notes li{margin-bottom:3px;}
+.row-date{display:flex;gap:10px;align-items:end;flex-wrap:wrap;}
+.toast{
+position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(12px);
+background:#1f2937;color:#fff;font-size:13px;padding:9px 16px;border-radius:20px;
+opacity:0;pointer-events:none;transition:.2s;z-index:99;box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.hist-actions{display:flex;gap:6px;justify-content:flex-end;}
+tr.today-row td{background:var(--accent-soft);}
+.badge{font-size:11px;padding:1px 5px;border-radius:4px;}
+.badge.ok{background:var(--good-bg);color:var(--good);}
+.badge.no{background:var(--bad-bg);color:var(--bad);}
+.foot{color:var(--txt3);font-size:11.5px;text-align:center;margin-top:22px;}
+@media (max-width:520px){
+.wrap{padding:12px 10px 48px;}
+header.top h1{font-size:17px;}
+.metric .v{font-size:19px;}
+body{font-size:13.5px;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+<div class="t-main">
+<h1 id="appTitle">每日摄入消耗台账</h1>
+<div class="sub" id="appSub">Eat · Move · Weigh — 摄入 / 消耗 / 体重 逐日核算 &nbsp;|&nbsp; 数据保存在本机浏览器（localStorage）</div>
+</div>
+<div class="top-actions">
+<button class="btn sm" id="btnExport">导出 CSV</button>
+<button class="btn sm" id="btnSeed">重置为示例数据</button>
+<button class="btn sm danger" id="btnClear">清空全部</button>
+</div>
+</header>
+<div id="pageMe">
+<!-- ============ 个人参数 ============ -->
+<section class="card">
+<div class="hd"><h2>个人参数</h2><span class="hint">修改后所有核算即时重算</span></div>
+<div class="fields c5">
+<div class="field">
+<label class="fl" for="pSex">性别（用于 BMR 公式）</label>
+<select id="pSex"><option value="female">女</option><option value="male">男</option></select>
+</div>
+<div class="field">
+<label class="fl" for="pBirthYear">出生年份（年龄由此推算）</label>
+<input type="number" id="pBirthYear" min="1940" max="2020" step="1">
+</div>
+<div class="field">
+<label class="fl" for="pHeight">身高（cm）</label>
+<input type="number" id="pHeight" min="120" max="220" step="0.5">
+</div>
+<div class="field">
+<label class="fl" for="pWeight">当前体重（kg）</label>
+<input type="number" id="pWeight" min="30" max="200" step="0.1">
+</div>
+<div class="field">
+<label class="fl" for="pTarget">目标体重（kg）</label>
+<input type="number" id="pTarget" min="30" max="200" step="0.1">
+</div>
+<div class="field">
+<label class="fl" for="pFatTarget">体脂率目标（%）</label>
+<input type="number" id="pFatTarget" min="5" max="50" step="0.1">
+</div>
+<div class="field">
+<label class="fl" for="pProt">蛋白质系数（g/kg 体重）</label>
+<input type="number" id="pProt" min="0.5" max="3" step="0.1">
+</div>
+<div class="field">
+<label class="fl" for="pAct">日常活动系数（不含专门运动）</label>
+<select id="pAct">
+<option value="1.2">1.20 久坐（办公室/少走动）</option>
+<option value="1.375">1.375 轻度活动（每天走动较多）</option>
+<option value="1.55">1.55 中度活动（站立/服务类工作）</option>
+<option value="1.725">1.725 高度活动（体力工作）</option>
+<option value="1.9">1.90 极高度活动（重体力/运动员）</option>
+</select>
+</div>
+<div class="field">
+<label class="fl" for="pBmr">基础代谢 BMR（kcal，体脂秤实测值可手改）</label>
+<input type="number" id="pBmr" min="800" max="4000" step="1">
+</div>
+<div class="field">
+<label class="fl" for="pBmrSrc">BMR 取值口径</label>
+<select id="pBmrSrc">
+<option value="measured">实测优先（体脂秤）</option>
+<option value="formula">公式推算（Mifflin-St Jeor）</option>
+</select>
+</div>
+<div class="field">
+<label class="fl">年龄（由出生年份推算）</label>
+<input type="text" id="pAgeView" readonly>
+</div>
+<div class="field">
+<label class="fl">蛋白质日目标（自动计算）</label>
+<input type="text" id="pProtGoal" readonly>
+</div>
+<div class="field">
+<label class="fl">距目标体重（自动计算）</label>
+<input type="text" id="pGapToGoal" readonly>
+</div>
+</div>
+</section>
+<!-- ============ 减重测算（参数派生，只读） ============ -->
+<section class="card">
+<div class="hd"><h2>减重测算</h2><span class="hint">由上方参数自动推算，随参数即时重算</span></div>
+<div class="grid2">
+<div>
+<div class="kv" id="planBox"></div>
+<div style="margin-top:12px;">
+<div style="font-size:14px;font-weight:600;" id="recRange">—</div>
+<div class="small" style="margin-top:3px;" id="recSplit">—</div>
+</div>
+</div>
+<div>
+<div class="kv" id="bmrBox"></div>
+<div class="tbl-wrap" style="margin-top:10px;">
+<table>
+<thead><tr><th>日缺口 kcal</th><th>摄入 kcal</th><th>达标</th></tr></thead>
+<tbody id="tbPlan"></tbody>
+</table>
+</div>
+</div>
+</div>
+</section>
+<!-- ============ 当日录入 ============ -->
+<section class="card">
+<div class="hd">
+<h2>每日录入</h2>
+<span class="hint" id="entryHint"></span>
+</div>
+<div class="row-date" style="margin-bottom:14px;">
+<div class="field" style="flex:1 1 180px;">
+<label class="fl" for="dDate">日期</label>
+<input type="date" id="dDate">
+</div>
+<div class="field" style="flex:1 1 140px;">
+<label class="fl" for="dWeight">当日体重（kg）</label>
+<input type="number" id="dWeight" min="30" max="200" step="0.1" placeholder="如 61.0">
+</div>
+<div class="field" style="flex:1 1 140px;">
+<label class="fl" for="dFat">当日体脂率（%，可选）</label>
+<input type="number" id="dFat" min="3" max="60" step="0.1" placeholder="可不填">
+</div>
+<div style="flex:0 0 auto;display:flex;gap:8px;">
+<button class="btn" id="btnLoad">读取该日</button>
+<button class="btn primary" id="btnSave">保存当日</button>
+</div>
+</div>
+<div class="grid2">
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+<h3 style="font-size:14px;">饮食录入</h3>
+<span class="small">营养库未收录的食物可手动填写每 100g 数值</span>
+</div>
+<div class="small" style="margin:-2px 0 9px;color:var(--txt3);">
+营养值按《中国食物成分表》常见条目估算（多为生重 / 可食部口径，名称中标注「熟」的条目按熟重计），实际会随烹饪方式、品牌与份量浮动。
+</div>
+<div class="rows" id="foodRows"></div>
+<div class="mini-add">
+<button class="btn sm" id="btnAddFood">+ 添加食物</button>
+<span class="small" id="foodCount"></span>
+</div>
+<datalist id="foodList"></datalist>
+</div>
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+<h3 style="font-size:14px;">运动录入</h3>
+<span class="small">消耗按 MET × 体重 × 时长估算</span>
+</div>
+<div class="rows" id="exRows"></div>
+<div class="mini-add">
+<button class="btn sm" id="btnAddEx">+ 添加运动</button>
+<span class="small" id="exCount"></span>
+</div>
+<datalist id="exList"></datalist>
+</div>
+</div>
+</section>
+<!-- ============ 当日核算 ============ -->
+<section class="card">
+<div class="hd"><h2>当日核算</h2><span class="hint" id="calcDate"></span></div>
+<div class="metrics">
+<div class="metric">
+<div class="k"><span>总摄入</span><span class="small">kcal</span></div>
+<div class="v num" id="mIntake">0</div>
+<div class="s" id="mIntakeSub">蛋白 / 脂肪 / 碳水</div>
+</div>
+<div class="metric">
+<div class="k"><span>BMR 基础代谢</span><span class="small">kcal</span></div>
+<div class="v num" id="mBmr">0</div>
+<div class="s" id="mBmrSub">Mifflin-St Jeor</div>
+</div>
+<div class="metric">
+<div class="k"><span>总消耗 TDEE</span><span class="small">kcal</span></div>
+<div class="v num" id="mTdee">0</div>
+<div class="s" id="mTdeeSub">BMR×系数 + 运动</div>
+</div>
+<div class="metric" id="mGapCard">
+<div class="k"><span>热量缺口</span><span class="small">kcal</span></div>
+<div class="v num" id="mGap">0</div>
+<div class="s" id="mGapSub">总消耗 − 总摄入</div>
+</div>
+</div>
+<div class="grid2" style="margin-top:14px;">
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+<h3 style="font-size:14px;">营养核算明细</h3>
+<span class="small" id="macroPct"></span>
+</div>
+<div class="tbl-wrap">
+<table id="tblFood">
+<thead><tr>
+<th>食物</th><th>份量</th><th>热量 kcal</th><th>蛋白 g</th><th>脂肪 g</th><th>碳水 g</th>
+</tr></thead>
+<tbody></tbody>
+<tfoot></tfoot>
+</table>
+</div>
+<div style="margin-top:12px;">
+<div style="display:flex;align-items:baseline;justify-content:space-between;">
+<h3 style="font-size:14px;">蛋白质达标判定</h3>
+<span class="verdict" id="protVerdict">—</span>
+</div>
+<div class="bar"><i id="protBar" style="width:0%"></i></div>
+<div class="small" id="protDetail"></div>
+</div>
+</div>
+<div>
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
+<h3 style="font-size:14px;">消耗核算明细</h3>
+<span class="small" id="burnSub"></span>
+</div>
+<div class="tbl-wrap">
+<table id="tblEx">
+<thead><tr>
+<th>项目</th><th>时长 min</th><th>MET</th><th>消耗 kcal</th>
+</tr></thead>
+<tbody></tbody>
+<tfoot></tfoot>
+</table>
+</div>
+<div style="margin-top:12px;">
+<h3 style="font-size:14px;margin-bottom:6px;">减重进度推算</h3>
+<div class="kv" id="projBox"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- ============ 体重趋势 ============ -->
+<section class="card">
+<div class="hd"><h2>体重记录与趋势</h2><span class="hint" id="chartHint"></span></div>
+<div class="chart-box" id="chartBox"></div>
+<div class="legend">
+<span><i style="background:#0f766e"></i>体重实测</span>
+<span><i style="background:#b91c1c"></i>目标线 <b class="num" id="lgTarget"></b></span>
+<span><i style="background:#8a94a3"></i>周均值</span>
+</div>
+</section>
+<!-- ============ 历史台账 ============ -->
+<section class="card">
+<div class="hd">
+<h2>历史台账</h2>
+<span class="hint">点击「查看」可把该日载入上方录入区修改</span>
+</div>
+<div class="tbl-wrap">
+<table id="tblHist">
+<thead><tr>
+<th>日期</th><th>体重 kg</th><th>摄入 kcal</th><th>蛋白 g</th><th>脂肪 g</th><th>碳水 g</th>
+<th>运动消耗 kcal</th><th>BMR kcal</th><th>热量缺口 kcal</th><th>蛋白质达标</th><th style="text-align:right">操作</th>
+</tr></thead>
+<tbody></tbody>
+<tfoot></tfoot>
+</table>
+</div>
+</section>
+<!-- ============ 公式说明 ============ -->
+<section class="card notes">
+<div class="hd"><h2>计算口径与公式说明</h2><span class="hint">所有数值均为估算值，仅用于趋势管理</span></div>
+<ul>
+<li><b>BMR 基础代谢（Mifflin-St Jeor）</b>：男 <code>10×体重kg + 6.25×身高cm − 5×年龄 + 5</code>；女 <code>10×体重kg + 6.25×身高cm − 5×年龄 − 161</code>。体重每日变化，BMR 随之自动重算。</li>
+<li><b>运动消耗（MET 法）</b>：<code>kcal = MET × 体重kg × 时长(小时)</code>，即 <code>MET × 3.5 × 体重kg ÷ 200 × 分钟</code>。MET 取自 Ainsworth 体力活动概要常用值。</li>
+<li><b>总消耗 TDEE</b>：<code>BMR × 日常活动系数 + 当日运动消耗</code>。活动系数仅代表"专门运动之外"的日常活动（默认 1.20 久坐），避免与运动消耗重复计算。</li>
+<li><b>热量缺口</b>：<code>总消耗 − 总摄入</code>。正数＝缺口（减脂方向），负数＝盈余。</li>
+<li><b>体重换算</b>：约 <code>7700 kcal ≈ 1 kg 脂肪</code>，故 <code>预计周数 = 剩余体重kg × 7700 ÷ (日均缺口 × 7)</code>；日均缺口取近 7 日均值（不足 7 日取已有记录）。</li>
+<li><b>蛋白质目标</b>：<code>1.5 g × 当日体重kg</code>（可在参数区调整系数）；当日体重缺失时用参数区当前体重。</li>
+<li><b>食物营养值</b>：按《中国食物成分表》常见条目估算，以每 100g（或每份）计，多为<b>生重 / 可食部</b>口径，名称中标注「熟」的条目按熟重计；烹饪方式（油、水煮、煎烤）与品牌差异会造成偏差，仅作估算。</li>
+</ul>
+</section>
+
+<!-- ============ 导入 / 同步数据（增量新增） ============ -->
+<section class="card" id="cardSync">
+<div class="hd"><h2>导入 / 同步数据</h2><span class="hint">把助理算好的 JSON 粘进来，按日期写入本机记录</span></div>
+<div class="small" style="margin-bottom:8px;">
+支持三种写法：<b>单天对象</b>、<b>对象数组</b>（一次导入多天）、<code>{"days":{...}}</code>（按日期为键的字典）。<br>
+宽松容错：<code>foods[].per</code> 缺省按 100 计、<code>p/f/c</code> 缺省按 0 计，<code>kcal</code> 必填；<code>date</code> 缺省按今天。
+四个字段（<code>foods</code> / <code>exercises</code> / <code>weight</code> / <code>fat</code>）<b>统一语义</b>：JSON 里<b>出现了这个键才覆盖，没出现就保留原值</b>（不会重复累加，也不会误删没提到的字段）；需要清空某天某项时，传<b>空数组 <code>[]</code></b> 即为显式清空。
+</div>
+<textarea id="impText" spellcheck="false" placeholder='例：{"date":"2026-10-15","weight":61.0,"foods":[{"name":"鸡蛋","amount":100,"per":100,"kcal":144,"p":13,"f":9,"c":1}],"exercises":[{"name":"快走","met":4,"minutes":30}]}'></textarea>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+<button class="btn primary" id="btnImport">导入并写入</button>
+<button class="btn sm" id="btnExportJson">导出全部 JSON</button>
+<button class="btn sm" id="btnImpClear">清空输入框</button>
+</div>
+<div class="imp-log" id="impResult"></div>
+</section>
+</div><!-- /pageMe -->
+<datalist id="dlFoodAll"></datalist>
+<div class="toast" id="toast"></div>
+<script>
+const FOOD_DB = [
+['米饭（熟）','g',100,116,2.6,0.3,25.9,0],
+['糙米饭（熟）','g',100,123,2.7,1.0,25.6,0],
+['白粥','g',100,46,1.1,0.3,9.9,0],
+['馒头','g',100,223,7.0,1.1,47.0,0],
+['花卷','g',100,214,6.4,1.0,45.6,0],
+['全麦面包','g',100,246,8.8,3.5,41.0,0],
+['面条（煮）','g',100,110,3.9,0.4,21.6,0],
+['荞麦面（干）','g',100,348,11.3,2.8,72.2,0],
+['红薯（蒸）','g',100,90,1.6,0.2,20.7,0],
+['紫薯（蒸）','g',100,82,1.4,0.2,19.0,0],
+['玉米（煮）','g',100,112,4.0,1.2,22.8,0],
+['燕麦片（干）','g',100,377,15.0,6.7,61.0,0],
+['土豆（蒸）','g',100,87,2.0,0.1,20.1,0],
+['南瓜','g',100,26,0.7,0.1,6.5,0],
+['水饺（猪肉白菜）','个',1,44,1.7,1.8,5.2,20],
+['包子（肉馅）','个',1,227,7.0,8.0,29.0,100],
+['鸡胸肉（熟）','g',100,165,31.0,3.6,0,0],
+['鸡腿肉（去皮熟）','g',100,181,20.0,10.0,0,0],
+['鸡翅（烤）','g',100,194,17.5,11.5,4.5,0],
+['牛里脊（瘦）','g',100,106,20.2,2.3,1.2,0],
+['猪里脊','g',100,155,20.2,7.9,0.7,0],
+['猪五花','g',100,518,7.7,53.0,2.4,0],
+['三文鱼','g',100,139,17.2,7.8,0,0],
+['鳕鱼','g',100,88,20.4,0.5,0,0],
+['基围虾','g',100,101,18.2,1.4,3.9,0],
+['金枪鱼（水浸）','g',100,108,23.6,0.8,0,0],
+['鸡蛋','个',1,72,6.7,4.4,1.4,50],
+['蛋清','个',1,20,3.9,0.0,0.2,33],
+['蛋白粉（乳清）','勺',1,117,24.0,1.5,2.0,30],
+['豆腐（北）','g',100,116,12.2,4.8,3.4,0],
+['香干','g',100,197,15.8,12.8,6.4,0],
+['毛豆','g',100,131,13.1,5.0,10.5,0],
+['豆浆（无糖）','ml',100,31,3.0,1.6,1.2,0],
+['全脂牛奶','ml',100,65,3.3,3.6,4.9,0],
+['脱脂牛奶','ml',100,34,3.4,0.2,5.0,0],
+['无糖酸奶','g',100,61,3.5,3.2,4.8,0],
+['希腊酸奶（无糖）','g',100,59,10.0,0.4,3.6,0],
+['奶酪（切达）','g',100,403,25.0,33.1,1.3,0],
+['西兰花','g',100,36,4.1,0.6,4.3,0],
+['菠菜','g',100,28,2.6,0.3,4.5,0],
+['生菜','g',100,16,1.3,0.3,2.0,0],
+['番茄','g',100,20,0.9,0.2,4.0,0],
+['黄瓜','g',100,16,0.8,0.2,2.9,0],
+['胡萝卜','g',100,39,1.0,0.2,8.8,0],
+['茄子','g',100,21,1.1,0.2,4.9,0],
+['香菇（鲜）','g',100,26,2.2,0.3,5.2,0],
+['大白菜','g',100,17,1.5,0.1,3.2,0],
+['秋葵','g',100,33,1.9,0.1,7.5,0],
+['芦笋','g',100,22,2.6,0.1,4.9,0],
+['海带（鲜）','g',100,13,1.2,0.1,2.1,0],
+['苹果','g',100,53,0.2,0.2,13.5,0],
+['香蕉','g',100,93,1.4,0.2,22.0,0],
+['橙子','g',100,48,0.8,0.2,11.1,0],
+['蓝莓','g',100,57,0.7,0.3,14.5,0],
+['草莓','g',100,32,1.0,0.2,7.1,0],
+['猕猴桃','g',100,61,0.8,0.6,14.5,0],
+['西瓜','g',100,31,0.5,0.1,7.9,0],
+['葡萄','g',100,45,0.5,0.2,10.3,0],
+['火龙果','g',100,55,1.1,0.4,13.0,0],
+['花生米（炒）','g',100,601,21.7,48.0,23.8,0],
+['核桃仁','g',100,646,14.9,58.8,19.1,0],
+['杏仁','g',100,578,22.5,45.4,23.9,0],
+['腰果','g',100,552,17.3,36.7,41.6,0],
+['芝麻酱','g',100,630,19.2,52.7,16.8,0],
+['食用油','g',100,899,0,99.9,0,0],
+['可乐','ml',100,43,0,0,10.8,0],
+['无糖可乐','ml',100,1,0,0,0.2,0],
+['奶茶（全糖中杯）','杯',1,350,3.0,12.0,55.0,500],
+['美式咖啡','杯',1,8,0.4,0,1.2,300],
+['拿铁（全脂中杯）','杯',1,175,8.5,9.0,12.0,350],
+['啤酒（罐）','罐',1,106,1.3,0,10.2,330],
+['黑巧克力（70%）','g',100,546,7.8,42.6,45.9,0],
+['薯片','g',100,548,6.0,35.0,52.0,0],
+['奶油蛋糕','g',100,350,4.5,18.0,44.0,0],
+['白砂糖','g',100,400,0,0,99.9,0]
+];
+/* ---------- 运动 MET 表： [名称, MET] ---------- */
+const EX_DB = [
+['慢走（3km/h）',2.5],
+['快走（5km/h）',3.5],
+['快走（6km/h）',4.3],
+['快走（7km/h，爬坡）',6.0],
+['慢跑（7km/h）',7.0],
+['跑步（8km/h）',8.3],
+['跑步（10km/h）',9.8],
+['骑行（休闲 <16km/h）',5.8],
+['骑行（中速 19–22km/h）',8.0],
+['游泳（蛙泳，休闲）',6.0],
+['游泳（自由泳，中等）',8.3],
+['跳绳（中速）',11.8],
+['椭圆机（中等）',5.0],
+['划船机（中等）',7.0],
+['爬楼梯',8.0],
+['有氧操 / 健身操（中等）',6.5],
+['HIIT 高强度间歇',8.0],
+['力量训练（中等）',5.0],
+['力量训练（大强度）',6.0],
+['核心训练（平板支撑等）',3.8],
+['瑜伽（哈他）',2.5],
+['流瑜伽 / 力量瑜伽',4.0],
+['普拉提',3.0],
+['拉伸 / 柔韧训练',2.3],
+['羽毛球（休闲）',5.5],
+['乒乓球',4.0],
+['网球（单打）',8.0],
+['篮球（一般对抗）',6.5],
+['尊巴 / 有氧舞蹈',6.5],
+['太极拳',3.0],
+['家务（一般性）',3.3],
+['遛狗',3.0],
+['爬楼通勤（步行上下班）',4.0]
+];
+const FOOD_MAP = {};
+FOOD_DB.forEach(f => { FOOD_MAP[f[0]] = {unit:f[1], per:f[2], kcal:f[3], p:f[4], f:f[5], c:f[6], gram:f[7]}; });
+const EX_MAP = {};
+EX_DB.forEach(e => { EX_MAP[e[0]] = e[1]; });
+const LS_KEY = 'daily_intake_ledger_v1';
+/* 参数定案：年龄改由 birthYear 推算（不再存 age，避免与出生年打架）；
+   BMR 实测优先、公式仅作参考；活动系数由 1.2 改为 1.375。 */
+const DEFAULT_PROFILE = { sex:'female', birthYear:1995, height:163, weight:61,
+  target:58, fatTarget:23, proteinPerKg:1.5, activity:1.375,
+  bmrMeasured:1402, bmrSource:'measured' };
+let state = { profile:{...DEFAULT_PROFILE}, days:{} };
+let editing = { date:'', foods:[], exercises:[], weight:null, fat:null };
+function save(){
+try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+catch(e){ toast('保存失败：浏览器存储不可用'); }
+}
+function load(){
+try{
+const raw = localStorage.getItem(LS_KEY);
+if(raw){
+const s = JSON.parse(raw);
+if(s && s.profile && s.days){
+state = s;
+/* 旧存档兼容：profile 里可能还带着 age / 缺新参数。
+   age 一律丢弃改由 birthYear 推算（不反推 birthYear —— 只有年龄推不出出生年，
+   宁可用默认 1995 让家长改一次，也不要编一个）。 */
+if(state.profile.age != null) delete state.profile.age;
+['birthYear','bmrMeasured','bmrSource','activity'].forEach(function(k){
+if(state.profile[k] == null) state.profile[k] = DEFAULT_PROFILE[k];
+});
+return true;
+}
+}
+}catch(e){}
+return false;
+}
+function ymd(d){
+const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
+return y+'-'+m+'-'+dd;
+}
+function daysAgo(n){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()-n); return d; }
+const DAY_TEMPLATES = [
+{f:[['燕麦片（干）',40],['脱脂牛奶',250],['鸡蛋',2]],
+l:[['米饭（熟）',150],['鸡胸肉（熟）',120],['西兰花',150],['食用油',8]],
+d:[['红薯（蒸）',150],['三文鱼',100],['菠菜',150]],
+s:[['希腊酸奶（无糖）',150]],
+e:[['快走（6km/h）',40]]},
+{f:[['全麦面包',80],['鸡蛋',2],['美式咖啡',1]],
+l:[['糙米饭（熟）',150],['牛里脊（瘦）',120],['芦笋',120]],
+d:[['玉米（煮）',180],['基围虾',120],['生菜',150]],
+s:[['苹果',180]],
+e:[['力量训练（中等）',35],['慢走（3km/h）',20]]},
+{f:[['白粥',350],['鸡蛋',1],['香干',50]],
+l:[['面条（煮）',200],['鸡腿肉（去皮熟）',100],['大白菜',150]],
+d:[['豆腐（北）',150],['鳕鱼',100],['秋葵',120]],
+s:[['无糖酸奶',150]],
+e:[['瑜伽（哈他）',45]]},
+{f:[['包子（肉馅）',1],['豆浆（无糖）',250]],
+l:[['米饭（熟）',130],['猪里脊',110],['番茄',150],['食用油',10]],
+d:[['紫薯（蒸）',150],['鸡蛋',1],['菠菜',150]],
+s:[['蓝莓',100]],
+e:[['跑步（8km/h）',25],['拉伸 / 柔韧训练',10]]},
+{f:[['馒头',100],['脱脂牛奶',250],['鸡蛋',1]],
+l:[['荞麦面（干）',80],['金枪鱼（水浸）',100],['黄瓜',150]],
+d:[['土豆（蒸）',150],['鸡胸肉（熟）',100],['西兰花',150]],
+s:[['蛋白粉（乳清）',1]],
+e:[['HIIT 高强度间歇',20],['快走（5km/h）',30]]},
+{f:[['紫薯（蒸）',150],['鸡蛋',2],['美式咖啡',1]],
+l:[['米饭（熟）',150],['三文鱼',120],['海带（鲜）',100],['食用油',8]],
+d:[['南瓜',200],['基围虾',120]],
+s:[['希腊酸奶（无糖）',150]],
+e:[['游泳（蛙泳，休闲）',35]]},
+{f:[['燕麦片（干）',40],['全脂牛奶',250],['香蕉',100]],
+l:[['糙米饭（熟）',140],['鸡胸肉（熟）',130],['胡萝卜',100],['西兰花',100]],
+d:[['玉米（煮）',150],['豆腐（北）',120],['生菜',150]],
+s:[['杏仁',20]],
+e:[['跳绳（中速）',12],['快走（6km/h）',25]]}
+];
+const WEIGHT_SEQ = [62.4,62.2,62.3,62.0,61.9,61.8,61.6,61.7,61.5,61.4,61.3,61.2,61.0];
+function makeFood(name, amount){
+const info = FOOD_MAP[name] || {unit:'g', per:100, kcal:0, p:0, f:0, c:0};
+return { name, amount, kcal:info.kcal, p:info.p, f:info.f, c:info.c, per:info.per, unit:info.unit };
+}
+function makeEx(name, minutes){
+return { name, minutes, met: EX_MAP[name] != null ? EX_MAP[name] : 5 };
+}
+function buildSeed(){
+const days = {};
+for(let i=13;i>=1;i--){
+const t = DAY_TEMPLATES[(13-i) % DAY_TEMPLATES.length];
+const foods = [];
+t.f.concat(t.l, t.d, t.s).forEach(function(x){
+if(!x[1]) return;
+const nm = x[0].replace('虾仁·基围虾','基围虾');
+foods.push(makeFood(nm, x[1]));
+});
+const exercises = t.e.map(function(e){ return makeEx(e[0], e[1]); });
+days[ymd(daysAgo(i))] = { foods, exercises, weight: WEIGHT_SEQ[13-i], fat: null };
+}
+return days;
+}
+function seedAll(){
+state = { profile:{...DEFAULT_PROFILE}, days: buildSeed() };
+save();
+}
+const KCAL_PER_KG_FAT = 7700;
+function sumFoods(list){
+const t = {kcal:0,p:0,f:0,c:0};
+(list||[]).forEach(function(x){
+const amt = Number(x.amount)||0;
+const k = amt / (Number(x.per)||100);
+t.kcal += (Number(x.kcal)||0)*k;
+t.p    += (Number(x.p)||0)*k;
+t.f    += (Number(x.f)||0)*k;
+t.c    += (Number(x.c)||0)*k;
+});
+return t;
+}
+function exKcal(item, weight){
+const met = Number(item.met)||0, min = Number(item.minutes)||0, w = Number(weight)||0;
+return met * w * (min/60);
+}
+function sumEx(list, weight){
+let k = 0; (list||[]).forEach(function(x){ k += exKcal(x, weight); });
+return k;
+}
+function bmr(weight, height, age, sex){
+const w = Number(weight)||0, h = Number(height)||0, a = Number(age)||0;
+const base = 10*w + 6.25*h - 5*a;
+return sex === 'male' ? base + 5 : base - 161;
+}
+/* 年龄由出生年推算。用本地年份 getFullYear()，不用 toISOString() ——
+   UTC 换算会在跨年边界上把 1 月 1 日算成上一年，年龄少 1 岁。 */
+function ageNow(){
+return new Date().getFullYear() - (Number(state.profile.birthYear) || 1995);
+}
+function profileWeight(){
+const lw = latestWeight();
+return lw != null ? Number(lw) : Number(state.profile.weight);
+}
+/* 生效 BMR：实测优先（bmrSource==='measured'），公式仅作兜底/参考。
+   家长可在「个人参数」里手改实测值，也可切到公式口径。 */
+function bmrActive(){
+const p = state.profile;
+if(p.bmrSource === 'formula') return bmrFormula();
+const m = Number(p.bmrMeasured);
+return m > 0 ? m : bmrFormula();
+}
+/* 公式值：只用于「参考行」显示与切到公式口径时生效，不参与实测口径的核算。 */
+function bmrFormula(){
+const p = state.profile;
+return bmr(profileWeight(), p.height, ageNow(), p.sex);
+}
+function tdeeBase(){ return bmrActive() * Number(state.profile.activity); }
+/* 需减总热量：剩余体重 × 7700 kcal/kg */
+function needKcal(){
+const remain = profileWeight() - Number(state.profile.target);
+return remain > 0 ? remain * KCAL_PER_KG_FAT : 0;
+}
+function proteinTarget(){ return Number(state.profile.proteinPerKg) * profileWeight(); }
+function dayCalc(dateStr){
+const p = state.profile;
+const rec = state.days[dateStr] || {};
+const weight = Number(rec.weight) > 0 ? Number(rec.weight) : Number(p.weight);
+const intake = sumFoods(rec.foods);
+const burn   = sumEx(rec.exercises, weight);
+const b      = bmrActive();   // 实测优先；公式值只在参考行显示
+const tdee   = b * Number(p.activity) + burn;
+const gap    = tdee - intake.kcal;
+const protGoal = Number(p.proteinPerKg) * weight;
+return { date:dateStr, weight, intake, burn, bmr:b, tdee, gap, protGoal,
+protOk: intake.p >= protGoal, protDiff: intake.p - protGoal,
+fat: Number(rec.fat)||null, foods: rec.foods||[], exercises: rec.exercises||[] };
+}
+function allDates(){ return Object.keys(state.days).sort(); }
+function dateListForTrend(){
+return allDates().filter(function(d){ return Number(state.days[d].weight) > 0; });
+}
+function avgGap(days){
+const ds = allDates().slice(-days);
+if(!ds.length) return null;
+let s = 0, n = 0;
+ds.forEach(function(d){ const c = dayCalc(d); if(c.intake.kcal > 0){ s += c.gap; n++; } });
+return n ? s/n : null;
+}
+function etaWeeks(){
+const cur = latestWeight() != null ? latestWeight() : state.profile.weight;
+const remain = cur - Number(state.profile.target);
+if(remain <= 0) return {type:'done', remain:remain};
+const g = avgGap(7);
+if(g == null || g <= 0) return {type:'none', remain:remain, gap:g};
+return {type:'ok', remain:remain, gap:g, weeks: remain*KCAL_PER_KG_FAT/(g*7)};
+}
+function latestWeight(){
+const ds = dateListForTrend();
+return ds.length ? Number(state.days[ds[ds.length-1]].weight) : null;
+}
+const $ = function(id){ return document.getElementById(id); };
+function n1(v){ return (Math.round(Number(v)*10)/10).toFixed(1); }
+function n0(v){ return Math.round(Number(v)).toLocaleString('zh-CN'); }
+function toast(msg){
+const t = $('toast'); t.textContent = msg; t.classList.add('show');
+clearTimeout(t._t); t._t = setTimeout(function(){ t.classList.remove('show'); }, 1800);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(m){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]; }); }
+function weekdayCN(dateStr){
+const d = new Date(dateStr+'T12:00:00');
+return ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+}
+function fillProfile(){
+const p = state.profile;
+$('pSex').value = p.sex; $('pBirthYear').value = p.birthYear; $('pHeight').value = p.height;
+$('pWeight').value = p.weight; $('pTarget').value = p.target; $('pFatTarget').value = p.fatTarget;
+$('pProt').value = p.proteinPerKg; $('pAct').value = String(p.activity);
+$('pBmr').value = p.bmrMeasured; $('pBmrSrc').value = p.bmrSource || 'measured';
+refreshProfileDerived();
+}
+function refreshProfileDerived(){
+const p = state.profile;
+const w = latestWeight() != null ? latestWeight() : p.weight;
+$('pAgeView').value = ageNow() + ' 岁（' + p.birthYear + ' 年生）';
+$('pProtGoal').value = n1(p.proteinPerKg * w) + ' g/日';
+const remain = w - p.target;
+$('pGapToGoal').value = (remain > 0 ? '还需减 ' + n1(remain) + ' kg' : (remain === 0 ? '已达目标' : '低于目标 ' + n1(-remain) + ' kg')) + '（体脂目标 ' + p.fatTarget + '%）';
+}
+
+/* 减重测算（只读派生）。
+   口径：天数 = Math.round(需减kcal / 日缺口)；周数 = (取整后天数 / 7) 保留1位
+   不要用精确天数算周数 —— 会出现「天数取整、周数未取整」的不自洽。
+      例：缺口 600，23100/600 = 38.5 → 39 天 → 5.6 周。
+      若用精确天数 38.5/7 = 5.5 周，就与「39 天」对不上（39/7 = 5.57 → 5.6）。
+   ⚠️ 天数必须用 Math.round（.5 向上：38.5 → 39）。两条实测过的坑：
+      1) Python 的 round() / '%.0f' 是银行家舍入（.5 取偶）：38.5 → 38、57.5 → 58。
+         别拿 Python 算出来的天数当基准，38 是错的。
+      2) 别用 toFixed(0) 替代：它在 .5 上虽也是 39，但按浮点二进制表示取舍，
+         遇到无法精确表示的值会反直觉 —— 实测 (1.005).toFixed(2) === "1.00"。
+   ⚠️ 周数用 n1(取整后天数/7)，不要用精确天数/7。 */
+function renderPlan(){
+const p = state.profile;
+const w = profileWeight();
+const tdeeV = tdeeBase();
+const needV = needKcal();
+const pt = proteinTarget(), pk = pt * 4;
+
+$('planBox').innerHTML = [
+['当前 → 目标', n1(w) + ' → ' + n1(p.target) + ' kg'],
+['需减热量', Math.round(needV).toLocaleString('zh-CN') + ' kcal'],
+['蛋白质目标', n1(pt) + ' g（' + Math.round(pk) + ' kcal，占 TDEE ' + n1(pk/tdeeV*100) + '%）']
+].map(function(r){ return '<div class="r"><span>'+r[0]+'</span><b class="num">'+r[1]+'</b></div>'; }).join('');
+
+const rows = [300,400,500,600].map(function(gap){
+const intake = Math.round(tdeeV) - gap;
+const days   = Math.round(needV / gap);
+const rec    = (gap === 400 || gap === 500);
+return '<tr' + (rec ? ' class="sum"' : '') + '><td>' + gap + '</td><td class="num">' + intake +
+       ' kcal</td><td class="num">' + days + ' 天（' + n1(days/7) + ' 周）</td></tr>';
+}).join('');
+$('tbPlan').innerHTML = rows;
+
+const lo = Math.round(tdeeV) - 500, hi = Math.round(tdeeV) - 400;
+$('recRange').textContent = '推荐摄入区间 ' + lo + '~' + hi + ' kcal/日（缺口 400-500，安全速率）';
+$('recSplit').textContent = '其中蛋白 ' + n1(pt) + ' g（' + Math.round(pk) + ' kcal）固定，余下 ' +
+Math.round(lo - pk) + '~' + Math.round(hi - pk) + ' kcal 分配给脂肪和碳水';
+
+const bA = bmrActive(), bF = bmrFormula();
+$('bmrBox').innerHTML = [
+['基础代谢', Math.round(bA) + ' kcal（' + (p.bmrSource === 'measured' ? '体脂秤实测' : '公式推算') + '）'],
+['参考：公式推算', Math.round(bF) + ' kcal，差 ' + (bA - bF >= 0 ? '+' : '') + Math.round(bA - bF)],
+['总消耗 TDEE', Math.round(tdeeV) + ' kcal（BMR × ' + p.activity + '）']
+].map(function(r){ return '<div class="r"><span>'+r[0]+'</span><b class="num">'+r[1]+'</b></div>'; }).join('');
+}
+function bindProfile(){
+['pSex','pBirthYear','pHeight','pWeight','pTarget','pFatTarget','pProt','pAct','pBmr','pBmrSrc'].forEach(function(id){
+const el = $(id);
+el.addEventListener('change', onProfileChange);
+el.addEventListener('input', onProfileChange);
+});
+}
+function onProfileChange(){
+const p = state.profile;
+p.sex = $('pSex').value;
+p.birthYear = Math.min(2020, Math.max(1940, Number($('pBirthYear').value)||1995));
+p.height = Number($('pHeight').value)||163;
+p.weight = Number($('pWeight').value)||61;
+p.target = Number($('pTarget').value)||58;
+p.fatTarget = Number($('pFatTarget').value)||23;
+p.proteinPerKg = Number($('pProt').value)||1.5;
+p.activity = Number($('pAct').value)||1.375;
+p.bmrMeasured = Number($('pBmr').value)||1402;
+p.bmrSource = $('pBmrSrc').value === 'formula' ? 'formula' : 'measured';
+save(); renderAll();
+}
+function buildDatalists(){
+$('foodList').innerHTML = FOOD_DB.map(function(f){ return '<option value="'+esc(f[0])+'">'; }).join('');
+$('exList').innerHTML   = EX_DB.map(function(e){ return '<option value="'+esc(e[0])+'">'; }).join('');
+}
+function addFoodRow(item){
+const el = document.createElement('div');
+el.className = 'row-item food';
+el.innerHTML =
+'<div class="field"><label class="fl">食物名称</label>'+
+'<input type="text" list="foodList" class="f-name" placeholder="如 鸡胸肉（熟）"></div>'+
+'<div class="field"><label class="fl">份量（<span class="f-unit">g</span>）</label>'+
+'<input type="number" class="f-amt" min="0" step="1" placeholder="0"></div>'+
+'<div class="field"><label class="fl">热量 kcal</label>'+
+'<input type="text" class="f-kcal" readonly value="0"></div>'+
+'<button class="del" title="删除本条" aria-label="删除">×</button>'+
+'<div class="manual">'+
+'<div class="field"><label class="fl mf">热量 / <span class="m-base">100g</span></label><input type="number" class="m-kcal" min="0" step="1"></div>'+
+'<div class="field"><label class="fl mf">蛋白 g / <span class="m-base">100g</span></label><input type="number" class="m-p" min="0" step="0.1"></div>'+
+'<div class="field"><label class="fl mf">脂肪 g / <span class="m-base">100g</span></label><input type="number" class="m-f" min="0" step="0.1"></div>'+
+'<div class="field"><label class="fl mf">碳水 g / <span class="m-base">100g</span></label><input type="number" class="m-c" min="0" step="0.1"></div>'+
+'</div>';
+$('foodRows').appendChild(el);
+bindRowEvents(el);
+if(item) fillFoodRow(el, item); else setFoodManual(el, false);
+return el;
+}
+function fillFoodRow(el, item){
+el.querySelector('.f-name').value = item.name || '';
+el.querySelector('.f-amt').value  = item.amount || '';
+const info = FOOD_MAP[item.name];
+el._unit = (item.unit) || (info ? info.unit : 'g');
+el._per  = (item.per)  || (info ? info.per  : 100);
+el.querySelector('.f-unit').textContent = el._unit;
+el.querySelector('.m-kcal').value = item.kcal || 0;
+el.querySelector('.m-p').value    = item.p || 0;
+el.querySelector('.m-f').value    = item.f || 0;
+el.querySelector('.m-c').value    = item.c || 0;
+syncBaseLabel(el);
+setFoodManual(el, !info);
+updateRowKcal(el);
+}
+function syncBaseLabel(el){
+const base = (el._unit === 'g' || el._unit === 'ml') ? '100'+el._unit : '1 '+el._unit;
+el.querySelectorAll('.m-base').forEach(function(s){ s.textContent = base; });
+}
+function setFoodManual(el, show){
+const m = el.querySelector('.manual');
+m.style.display = show ? 'grid' : 'none';
+}
+function updateRowKcal(el){
+const amt = Number(el.querySelector('.f-amt').value)||0;
+const per = Number(el._per)||100;
+const k = amt/per;
+const kcal = (Number(el.querySelector('.m-kcal').value)||0) * k;
+el.querySelector('.f-kcal').value = Math.round(kcal);
+}
+function bindRowEvents(el){
+const nameEl = el.querySelector('.f-name');
+if(nameEl){
+nameEl.addEventListener('input', function(){
+const info = FOOD_MAP[nameEl.value.trim()];
+if(info){
+el._unit = info.unit; el._per = info.per;
+el.querySelector('.f-unit').textContent = info.unit;
+el.querySelector('.m-kcal').value = info.kcal;
+el.querySelector('.m-p').value = info.p;
+el.querySelector('.m-f').value = info.f;
+el.querySelector('.m-c').value = info.c;
+if(!(Number(el.querySelector('.f-amt').value)>0)){
+el.querySelector('.f-amt').value = (info.unit==='g'||info.unit==='ml') ? 100 : 1;
+}
+setFoodManual(el, false);
+}else{
+setFoodManual(el, true);
+}
+syncBaseLabel(el); updateRowKcal(el); renderCalc();
+});
+el.querySelector('.f-amt').addEventListener('input', function(){ updateRowKcal(el); renderCalc(); });
+['m-kcal','m-p','m-f','m-c'].forEach(function(c){
+el.querySelector('.'+c).addEventListener('input', function(){ updateRowKcal(el); renderCalc(); });
+});
+}else{
+const exName = el.querySelector('.e-name');
+exName.addEventListener('input', function(){
+const met = EX_MAP[exName.value.trim()];
+if(met != null){ el.querySelector('.e-met').value = met; }
+updateRowBurn(el); renderCalc();
+});
+el.querySelector('.e-min').addEventListener('input', function(){ updateRowBurn(el); renderCalc(); });
+el.querySelector('.e-met').addEventListener('input', function(){ updateRowBurn(el); renderCalc(); });
+}
+el.querySelector('.del').addEventListener('click', function(){
+el.remove(); renderCalc(); updateRowCounts();
+});
+}
+function addExRow(item){
+const el = document.createElement('div');
+el.className = 'row-item ex';
+el.innerHTML =
+'<div class="field"><label class="fl">运动项目</label>'+
+'<input type="text" list="exList" class="e-name" placeholder="如 快走（6km/h）"></div>'+
+'<div class="field"><label class="fl">时长 min</label>'+
+'<input type="number" class="e-min" min="0" step="1" placeholder="0"></div>'+
+'<div class="field"><label class="fl">MET</label>'+
+'<input type="number" class="e-met" min="0.5" step="0.1" placeholder="—"></div>'+
+'<div class="field"><label class="fl">消耗 kcal</label>'+
+'<input type="text" class="e-kcal" readonly value="0"></div>'+
+'<button class="del" title="删除本条" aria-label="删除">×</button>';
+$('exRows').appendChild(el);
+bindRowEvents(el);
+if(item){
+el.querySelector('.e-name').value = item.name || '';
+el.querySelector('.e-min').value  = item.minutes || '';
+el.querySelector('.e-met').value  = item.met || '';
+updateRowBurn(el);
+}
+return el;
+}
+function updateRowBurn(el){
+const w = Number($('dWeight').value) > 0 ? Number($('dWeight').value) : state.profile.weight;
+const min = Number(el.querySelector('.e-min').value)||0;
+const met = Number(el.querySelector('.e-met').value)||0;
+el.querySelector('.e-kcal').value = Math.round(met * w * min/60);
+}
+function updateRowCounts(){
+const fd = document.querySelectorAll('#foodRows .row-item').length;
+const ed = document.querySelectorAll('#exRows .row-item').length;
+$('foodCount').textContent = fd ? '共 '+fd+' 条' : '';
+$('exCount').textContent   = ed ? '共 '+ed+' 条' : '';
+}
+function readEntry(){
+const foods = [], exercises = [];
+document.querySelectorAll('#foodRows .row-item').forEach(function(el){
+const name = el.querySelector('.f-name').value.trim();
+const amt  = Number(el.querySelector('.f-amt').value)||0;
+if(!name && !amt) return;
+foods.push({
+name:name||'未命名', amount:amt, unit:el._unit||'g', per:Number(el._per)||100,
+kcal:Number(el.querySelector('.m-kcal').value)||0,
+p:Number(el.querySelector('.m-p').value)||0,
+f:Number(el.querySelector('.m-f').value)||0,
+c:Number(el.querySelector('.m-c').value)||0
+});
+});
+document.querySelectorAll('#exRows .row-item').forEach(function(el){
+const name = el.querySelector('.e-name').value.trim();
+const min  = Number(el.querySelector('.e-min').value)||0;
+if(!name && !min) return;
+exercises.push({ name:name||'未命名', minutes:min, met:Number(el.querySelector('.e-met').value)||0 });
+});
+return {
+date: $('dDate').value,
+foods, exercises,
+weight: Number($('dWeight').value) > 0 ? Number($('dWeight').value) : null,
+fat: Number($('dFat').value) > 0 ? Number($('dFat').value) : null
+};
+}
+function loadDateIntoForm(dateStr){
+const rec = state.days[dateStr];
+$('foodRows').innerHTML = ''; $('exRows').innerHTML = '';
+if(rec && rec.foods && rec.foods.length){ rec.foods.forEach(function(f){ addFoodRow(f); }); }
+else { addFoodRow(); }
+if(rec && rec.exercises && rec.exercises.length){ rec.exercises.forEach(function(e){ addExRow(e); }); }
+else { addExRow(); }
+$('dWeight').value = rec && rec.weight ? rec.weight : '';
+$('dFat').value    = rec && rec.fat ? rec.fat : '';
+updateRowCounts(); renderCalc();
+$('entryHint').textContent = rec ? '该日已有记录，修改后请点「保存当日」' : '该日暂无记录';
+}
+function currentCalc(){
+const e = readEntry(), p = state.profile;
+const weight = e.weight > 0 ? e.weight : p.weight;
+const intake = sumFoods(e.foods);
+const burn   = sumEx(e.exercises, weight);
+const b      = bmrActive();   // 实测优先；公式值只在参考行显示
+const tdee   = b * Number(p.activity) + burn;
+const gap    = tdee - intake.kcal;
+const protGoal = Number(p.proteinPerKg) * weight;
+return { e, weight, intake, burn, bmr:b, tdee, gap, protGoal,
+protOk: intake.p >= protGoal, protDiff: intake.p - protGoal };
+}
+function renderCalc(){
+const c = currentCalc();
+const dStr = $('dDate').value;
+$('calcDate').textContent = dStr ? (dStr + ' ' + weekdayCN(dStr) + '（含未保存修改）') : '';
+$('mIntake').textContent = n0(c.intake.kcal);
+$('mIntakeSub').textContent = '蛋白 ' + n1(c.intake.p) + 'g / 脂肪 ' + n1(c.intake.f) + 'g / 碳水 ' + n1(c.intake.c) + 'g';
+$('mBmr').textContent = n0(c.bmr);
+$('mBmrSub').textContent = '体重 ' + n1(c.weight) + 'kg · ' + (state.profile.sex==='female'?'女':'男') + ' · ' + ageNow() + '岁 · ' + state.profile.height + 'cm · ' + (state.profile.bmrSource==='measured' ? '实测' : '公式');
+$('mTdee').textContent = n0(c.tdee);
+$('mTdeeSub').textContent = 'BMR×' + state.profile.activity + ' + 运动 ' + n0(c.burn);
+const card = $('mGapCard');
+const hasAny = c.e.foods.length > 0 || c.e.exercises.length > 0;
+card.classList.remove('gap-deficit','gap-surplus');
+if(!hasAny){
+$('mGap').textContent = '—';
+$('mGapSub').textContent = '当日暂无摄入/运动记录';
+}else{
+card.classList.add(c.gap >= 0 ? 'gap-deficit' : 'gap-surplus');
+$('mGap').textContent = (c.gap >= 0 ? '' : '+') + n0(Math.abs(c.gap));
+$('mGapSub').textContent = c.gap >= 0 ? '缺口 · 总消耗 − 总摄入' : '盈余 · 摄入超出消耗';
+}
+const tb = $('tblFood').querySelector('tbody');
+tb.innerHTML = c.e.foods.length ? c.e.foods.map(function(f){
+const k = (Number(f.amount)||0)/(Number(f.per)||100);
+return '<tr><td>'+esc(f.name)+'</td><td class="num">'+n1(f.amount)+' '+esc(f.unit)+'</td>'+
+'<td class="num">'+n0(f.kcal*k)+'</td><td class="num">'+n1(f.p*k)+'</td>'+
+'<td class="num">'+n1(f.f*k)+'</td><td class="num">'+n1(f.c*k)+'</td></tr>';
+}).join('') : '<tr><td colspan="6" class="empty">暂无食物记录</td></tr>';
+const tk = c.intake.kcal;
+const pctP = tk>0 ? ' (' + Math.round(c.intake.p*4/tk*100) + '%)' : '';
+const pctF = tk>0 ? ' (' + Math.round(c.intake.f*9/tk*100) + '%)' : '';
+const pctC = tk>0 ? ' (' + Math.round(c.intake.c*4/tk*100) + '%)' : '';
+$('tblFood').querySelector('tfoot').innerHTML =
+'<tr class="sum"><td>合计</td><td></td><td class="num">'+n0(c.intake.kcal)+'</td>'+
+'<td class="num">'+n1(c.intake.p)+pctP+'</td>'+
+'<td class="num">'+n1(c.intake.f)+pctF+'</td>'+
+'<td class="num">'+n1(c.intake.c)+pctC+'</td></tr>';
+$('macroPct').textContent = tk>0 ? '供能比：蛋白/脂肪/碳水 = ' + Math.round(c.intake.p*4/tk*100) + '% / ' + Math.round(c.intake.f*9/tk*100) + '% / ' + Math.round(c.intake.c*4/tk*100) + '%' : '';
+const eb = $('tblEx').querySelector('tbody');
+eb.innerHTML = c.e.exercises.length ? c.e.exercises.map(function(x){
+return '<tr><td>'+esc(x.name)+'</td><td class="num">'+n0(x.minutes)+'</td><td class="num">'+n1(x.met)+'</td>'+
+'<td class="num">'+n0(exKcal(x, c.weight))+'</td></tr>';
+}).join('') : '<tr><td colspan="4" class="empty">暂无运动记录</td></tr>';
+$('tblEx').querySelector('tfoot').innerHTML =
+'<tr class="sum"><td>运动小计</td><td class="num">'+n0(c.e.exercises.reduce(function(s,x){return s+(Number(x.minutes)||0);},0))+'</td><td></td>'+
+'<td class="num">'+n0(c.burn)+'</td></tr>';
+$('burnSub').textContent = '按体重 ' + n1(c.weight) + 'kg 估算';
+const ratio = c.protGoal > 0 ? c.intake.p / c.protGoal : 0;
+const bar = $('protBar');
+bar.style.width = Math.min(100, Math.max(0, ratio*100)) + '%';
+bar.className = ratio >= 1 ? (ratio > 1.25 ? 'over' : 'ok') : 'low';
+const v = $('protVerdict');
+if(c.protGoal <= 0){ v.textContent = '—'; v.className = 'verdict'; }
+else if(c.protOk){
+v.textContent = '达标（超出 ' + n1(c.protDiff) + ' g）'; v.className = 'verdict ok';
+}else{
+v.textContent = '未达标（差 ' + n1(-c.protDiff) + ' g）'; v.className = 'verdict low';
+}
+$('protDetail').textContent = '已摄入 ' + n1(c.intake.p) + ' g / 目标 ' + n1(c.protGoal) + ' g（' +
+(state.profile.proteinPerKg) + ' g × ' + n1(c.weight) + ' kg）· 完成度 ' + Math.round(ratio*100) + '%';
+const eta = etaWeeks();
+const rows = [];
+rows.push(['当前体重', n1(latestWeight()!=null?latestWeight():state.profile.weight)+' kg']);
+rows.push(['目标体重', n1(state.profile.target)+' kg']);
+rows.push(['剩余需减', (eta.remain>0?n1(eta.remain):'0')+' kg']);
+rows.push(['近 7 日均缺口', (avgGap(7)!=null? (avgGap(7)>=0?'':'+')+n0(Math.abs(avgGap(7))):'—')+' kcal']);
+let line;
+if(eta.type==='done'){ line = '已达到目标体重'; }
+else if(eta.type==='none'){ line = '当前为热量盈余，无法估算'; }
+/* ⚠️ 目标体重必须读 state.profile.target，不要写死数字。
+   曾有 bug：这里硬编码 '达 58kg'，用户把目标改成 55 后，周数跟着变了、
+   这句却还说「58kg」，一句话里自相矛盾。目标是可配置参数，凡展示处一律取变量。 */
+else{ line = '约 ' + (eta.weeks<1? n1(eta.weeks*7)+' 天' : n1(eta.weeks)+' 周') + ' 达 ' + (+(state.profile.target)) + 'kg'; }
+rows.push(['按此速度', line]);
+rows.push(['换算依据', '7700 kcal ≈ 1 kg 脂肪']);
+$('projBox').innerHTML = rows.map(function(r){
+return '<div class="r"><span>'+r[0]+'</span><b class="num">'+r[1]+'</b></div>';
+}).join('');
+refreshProfileDerived();
+}
+function renderChart(){
+const pts = dateListForTrend().map(function(d){ return {d, w:Number(state.days[d].weight)}; });
+const target = Number(state.profile.target);
+$('lgTarget').textContent = n1(target) + ' kg';
+let preview = null;
+const curDate = $('dDate').value;
+const wVal = Number($('dWeight').value);
+if(curDate && wVal > 0 && !state.days[curDate]) preview = {d:curDate, w:wVal};
+const all = pts.concat(preview?[preview]:[]);
+if(all.length === 0){
+$('chartBox').innerHTML = '<div class="empty">暂无体重记录，请在上方录入当日体重并保存。</div>';
+$('chartHint').textContent = '';
+return;
+}
+$('chartHint').textContent = '共 ' + all.length + ' 条记录' + (preview ? '（含 1 条待保存）' : '');
+const W = 760, H = 280, ml = 46, mr = 62, mt = 18, mb = 38;
+const iw = W-ml-mr, ih = H-mt-mb;
+const ws = all.map(function(p){ return p.w; }).concat([target]);
+let lo = Math.min.apply(null, ws), hi = Math.max.apply(null, ws);
+const pad = Math.max(0.4, (hi-lo)*0.18); lo -= pad; hi += pad;
+if(hi-lo < 1){ hi = lo + 1; }
+const X = function(i){ return all.length===1 ? ml+iw/2 : ml + iw*i/(all.length-1); };
+const Y = function(v){ return mt + ih*(1-(v-lo)/(hi-lo)); };
+let g = '';
+const steps = 4;
+for(let i=0;i<=steps;i++){
+const v = lo + (hi-lo)*i/steps, y = Y(v);
+g += '<line x1="'+ml+'" y1="'+y.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+y.toFixed(1)+'" stroke="#eef0f3" stroke-width="1"/>';
+g += '<text x="'+(ml-8)+'" y="'+(y+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#8a94a3">'+v.toFixed(1)+'</text>';
+}
+const ty = Y(target);
+g += '<line x1="'+ml+'" y1="'+ty.toFixed(1)+'" x2="'+(W-mr)+'" y2="'+ty.toFixed(1)+'" stroke="#b91c1c" stroke-width="1.5" stroke-dasharray="6 4"/>';
+g += '<text x="'+(W-mr+6)+'" y="'+(ty+4).toFixed(1)+'" font-size="11" fill="#b91c1c">目标 '+target.toFixed(1)+'</text>';
+if(pts.length >= 3){
+const ma = [];
+for(let i=0;i<pts.length;i++){
+const s = Math.max(0, i-6), seg = pts.slice(s, i+1);
+ma.push({x:X(preview&&i===pts.length-1? i : i), y:Y(seg.reduce(function(a,b){return a+b.w;},0)/seg.length)});
+}
+g += '<polyline fill="none" stroke="#8a94a3" stroke-width="1.4" stroke-dasharray="3 3" points="'+ma.map(function(p){return p.x.toFixed(1)+','+p.y.toFixed(1);}).join(' ')+'"/>';
+}
+if(pts.length){
+const pl = pts.map(function(p,i){ return X(i).toFixed(1)+','+Y(p.w).toFixed(1); }).join(' ');
+g += '<polyline fill="none" stroke="#0f766e" stroke-width="2.2" stroke-linejoin="round" points="'+pl+'"/>';
+pts.forEach(function(p,i){
+const x = X(i), y = Y(p.w), last = i===pts.length-1;
+g += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+(last?4.5:3.4)+'" fill="#fff" stroke="#0f766e" stroke-width="2"/>';
+const step = Math.ceil(pts.length/8);
+if(i % step === 0 || last){
+g += '<text x="'+x.toFixed(1)+'" y="'+(H-mb+18)+'" text-anchor="middle" font-size="10.5" fill="#8a94a3">'+p.d.slice(5)+'</text>';
+}
+if(last || i % step === 0){
+g += '<text x="'+x.toFixed(1)+'" y="'+(y-11).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#0f766e">'+p.w.toFixed(1)+'</text>';
+}
+});
+if(preview){
+const x0 = X(pts.length-1), y0 = Y(pts[pts.length-1].w), x1 = X(pts.length), y1 = Y(preview.w);
+g += '<line x1="'+x0.toFixed(1)+'" y1="'+y0.toFixed(1)+'" x2="'+x1.toFixed(1)+'" y2="'+y1.toFixed(1)+'" stroke="#0f766e" stroke-width="1.6" stroke-dasharray="4 3" opacity="0.55"/>';
+g += '<circle cx="'+x1.toFixed(1)+'" cy="'+y1.toFixed(1)+'" r="4.5" fill="#fff" stroke="#0f766e" stroke-width="2" stroke-dasharray="2 2"/>';
+g += '<text x="'+x1.toFixed(1)+'" y="'+(y1-11).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#0f766e">'+preview.w.toFixed(1)+'</text>';
+g += '<text x="'+x1.toFixed(1)+'" y="'+(H-mb+18)+'" text-anchor="middle" font-size="10.5" fill="#8a94a3">'+preview.d.slice(5)+'</text>';
+}
+}else if(preview){
+const x = X(0), y = Y(preview.w);
+g += '<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="4.5" fill="#fff" stroke="#0f766e" stroke-width="2" stroke-dasharray="2 2"/>';
+g += '<text x="'+x.toFixed(1)+'" y="'+(y-11).toFixed(1)+'" text-anchor="middle" font-size="11" font-weight="600" fill="#0f766e">'+preview.w.toFixed(1)+'</text>';
+g += '<text x="'+x.toFixed(1)+'" y="'+(H-mb+18)+'" text-anchor="middle" font-size="10.5" fill="#8a94a3">'+preview.d.slice(5)+'（待保存）</text>';
+}
+g += '<line x1="'+ml+'" y1="'+(mt+ih)+'" x2="'+(W-mr)+'" y2="'+(mt+ih)+'" stroke="#d6dae0" stroke-width="1"/>';
+g += '<text x="'+ml+'" y="'+(H-6)+'" font-size="10.5" fill="#8a94a3">单位：kg</text>';
+$('chartBox').innerHTML = '<svg class="chart" viewBox="0 0 '+W+' '+H+'" role="img" aria-label="体重趋势折线图">'+g+'</svg>';
+}
+function renderHistory(){
+const ds = allDates().slice().reverse();
+const tb = $('tblHist').querySelector('tbody');
+const today = ymd(new Date());
+if(!ds.length){
+tb.innerHTML = '<tr><td colspan="11" class="empty">暂无记录</td></tr>';
+$('tblHist').querySelector('tfoot').innerHTML = '';
+return;
+}
+tb.innerHTML = ds.map(function(d){
+const c = dayCalc(d);
+const g = c.gap;
+const gapCell = '<td class="num" style="color:'+(g>=0?'var(--good)':'var(--bad)')+';font-weight:600">'+
+(g>=0 ? n0(g) : '+' + n0(-g)) + '</td>';
+return '<tr'+(d===today?' class="today-row"':'')+' data-d="'+d+'">'+
+'<td>'+d+' <span class="small">'+weekdayCN(d)+'</span></td>'+
+'<td class="num">'+(c.weight?n1(c.weight):'—')+'</td>'+
+'<td class="num">'+n0(c.intake.kcal)+'</td>'+
+'<td class="num">'+n1(c.intake.p)+'</td>'+
+'<td class="num">'+n1(c.intake.f)+'</td>'+
+'<td class="num">'+n1(c.intake.c)+'</td>'+
+'<td class="num">'+n0(c.burn)+'</td>'+
+'<td class="num">'+n0(c.bmr)+'</td>'+
+gapCell+
+'<td><span class="badge '+(c.protOk?'ok':'no')+'">'+(c.protOk?'达标':'差 '+n1(-c.protDiff)+'g')+'</span></td>'+
+'<td><div class="hist-actions"><button class="btn tiny view">查看</button><button class="btn tiny del2">删除</button></div></td>'+
+'</tr>';
+}).join('');
+const n = ds.length;
+const agg = {w:0,k:0,p:0,f:0,c:0,b:0,bm:0,g:0,ok:0,nw:0};
+ds.forEach(function(d){ const c = dayCalc(d);
+agg.w += c.weight?c.weight:0; agg.nw += c.weight?1:0;
+agg.k += c.intake.kcal; agg.p += c.intake.p; agg.f += c.intake.f; agg.c += c.intake.c;
+agg.b += c.burn; agg.bm += c.bmr; agg.g += c.gap; agg.ok += c.protOk?1:0; });
+$('tblHist').querySelector('tfoot').innerHTML =
+'<tr class="sum"><td>均值 / 合计（'+n+' 天）</td>'+
+'<td class="num">'+(agg.nw?n1(agg.w/agg.nw):'—')+'</td>'+
+'<td class="num">'+n0(agg.k/n)+'</td><td class="num">'+n1(agg.p/n)+'</td>'+
+'<td class="num">'+n1(agg.f/n)+'</td><td class="num">'+n1(agg.c/n)+'</td>'+
+'<td class="num">'+n0(agg.b/n)+'</td><td class="num">'+n0(agg.bm/n)+'</td>'+
+'<td class="num">'+(agg.g>=0? n0(agg.g/n) : '+'+n0(-agg.g/n))+'</td>'+
+'<td>达标 '+agg.ok+'/'+n+' 天</td><td></td></tr>';
+}
+function renderAll(){ renderCalc(); renderPlan(); renderChart(); renderHistory(); }
+function doSave(){
+const e = readEntry();
+if(!e.date){ toast('请先选择日期'); return; }
+const hasData = e.foods.length || e.exercises.length || e.weight || e.fat;
+if(!hasData){ toast('当日无任何记录，未保存'); return; }
+state.days[e.date] = { foods:e.foods, exercises:e.exercises, weight:e.weight, fat:e.fat };
+if(e.weight){ state.profile.weight = e.weight; $('pWeight').value = e.weight; }
+save(); renderAll();
+$('entryHint').textContent = '已保存 · ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
+toast('已保存 ' + e.date + ' 的记录');
+}
+function exportCSV(){
+const ds = allDates();
+const head = ['日期','星期','体重kg','体脂率%','摄入kcal','蛋白g','脂肪g','碳水g','运动消耗kcal','BMR kcal','总消耗kcal','热量缺口kcal','蛋白质目标g','蛋白质达标'];
+const lines = [head.join(',')];
+ds.forEach(function(d){
+const c = dayCalc(d);
+lines.push([d, weekdayCN(d), c.weight||'', c.fat||'', Math.round(c.intake.kcal), n1(c.intake.p), n1(c.intake.f), n1(c.intake.c),
+Math.round(c.burn), Math.round(c.bmr), Math.round(c.tdee), Math.round(c.gap), n1(c.protGoal), c.protOk?'达标':'未达标'].join(','));
+});
+const blob = new Blob(['\ufeff'+lines.join('\n')], {type:'text/csv;charset=utf-8'});
+const a = document.createElement('a');
+a.href = URL.createObjectURL(blob);
+a.download = '摄入消耗台账_' + ymd(new Date()) + '.csv';
+document.body.appendChild(a); a.click(); document.body.removeChild(a);
+toast('已导出 ' + ds.length + ' 天记录');
+}
+function bindActions(){
+$('btnAddFood').addEventListener('click', function(){ addFoodRow(); updateRowCounts(); renderCalc(); });
+$('btnAddEx').addEventListener('click', function(){ addExRow(); updateRowCounts(); renderCalc(); });
+$('btnSave').addEventListener('click', doSave);
+$('btnLoad').addEventListener('click', function(){
+const d = $('dDate').value; if(!d) return;
+loadDateIntoForm(d); toast('已读取 ' + d);
+});
+$('dDate').addEventListener('change', function(){ loadDateIntoForm($('dDate').value); });
+$('dWeight').addEventListener('input', function(){
+document.querySelectorAll('#exRows .row-item').forEach(updateRowBurn);
+renderCalc(); renderChart();
+});
+$('dFat').addEventListener('input', renderCalc);
+$('btnExport').addEventListener('click', exportCSV);
+$('btnSeed').addEventListener('click', function(){
+const n = Object.keys(state.days).length;
+if(!confirm('即将用内置示例数据覆盖「我的台账」。\n当前已有 ' + n + ' 天记录，覆盖后无法恢复。\n\n确定继续吗？')) return;
+if(!confirm('最后确认：真的要重写这 ' + n + ' 天记录吗？此操作不可撤销。')) return;
+seedAll(); fillProfile(); $('dDate').value = ymd(new Date()); loadDateIntoForm($('dDate').value); renderAll();
+toast('已重置为示例数据（13 天）');
+});
+$('btnClear').addEventListener('click', function(){
+const n = Object.keys(state.days).length;
+if(!n){ toast('当前没有记录'); return; }
+if(!confirm('即将删除「我的台账」的全部 ' + n + ' 天记录，删除后无法恢复。\n\n确定继续吗？')) return;
+if(!confirm('最后确认：删除全部 ' + n + ' 天记录？')) return;
+state.days = {}; save(); $('dDate').value = ymd(new Date()); loadDateIntoForm($('dDate').value); renderAll();
+toast('已清空');
+});
+$('tblHist').querySelector('tbody').addEventListener('click', function(ev){
+const tr = ev.target.closest('tr'); if(!tr) return;
+const d = tr.getAttribute('data-d'); if(!d) return;
+if(ev.target.classList.contains('view')){
+$('dDate').value = d; loadDateIntoForm(d);
+const card = document.querySelectorAll('.card')[1];
+if(card) window.scrollTo({top: card.offsetTop - 12, behavior:'smooth'});
+toast('已载入 ' + d);
+}else if(ev.target.classList.contains('del2')){
+if(!confirm('删除 ' + d + ' 的记录？')) return;
+delete state.days[d]; save(); renderAll(); toast('已删除 ' + d);
+}
+});
+}
+/* ===================== 导入 / 同步数据（增量新增） ===================== */
+/* 说明：只新增下面这组函数 + bindSync()，未修改任何既有函数与计算口径。 */
+function normFood(x){
+if(!x || typeof x !== 'object') return null;
+const name = String(x.name != null ? x.name : (x.food != null ? x.food : '')).trim();
+const amount = Number(x.amount != null ? x.amount : (x.qty != null ? x.qty : 0)) || 0;
+const kcal = Number(x.kcal != null ? x.kcal : (x.cal != null ? x.cal : NaN));
+if(!name && !amount) return null;
+if(!isFinite(kcal)) return { __bad:1, name:(name || '未命名'), why:'缺少 kcal（热量为必填）' };
+return {
+name: name || '未命名',
+amount: amount,
+unit: String(x.unit || 'g'),
+per: Number(x.per) > 0 ? Number(x.per) : 100,
+kcal: kcal,
+p: Number(x.p != null ? x.p : (x.protein != null ? x.protein : 0)) || 0,
+f: Number(x.f != null ? x.f : (x.fat != null ? x.fat : 0)) || 0,
+c: Number(x.c != null ? x.c : (x.carb != null ? x.carb : 0)) || 0
+};
+}
+function normEx(x){
+if(!x || typeof x !== 'object') return null;
+const name = String(x.name != null ? x.name : (x.ex != null ? x.ex : '')).trim();
+const minutes = Number(x.minutes != null ? x.minutes : (x.min != null ? x.min : 0)) || 0;
+const met = Number(x.met != null ? x.met : (x.MET != null ? x.MET : 0)) || 0;
+if(!name && !minutes) return null;
+if(!met) return { __bad:1, name:(name || '未命名'), why:'缺少 met（代谢当量）' };
+return { name: name || '未命名', minutes: minutes, met: met };
+}
+/* 归一化入口：单天对象 / 数组 / {days:{...}} → 对象数组 */
+function normDays(input){
+const out = [];
+if(Array.isArray(input)){ input.forEach(function(o){ out.push(o); }); return out; }
+if(input && typeof input === 'object'){
+if(input.days && typeof input.days === 'object' && !Array.isArray(input.days)){
+Object.keys(input.days).forEach(function(d){
+const o = input.days[d];
+if(o && typeof o === 'object'){
+const c = {}; for(const k in o) c[k] = o[k];
+if(c.date == null) c.date = d;
+out.push(c);
+}
+});
+return out;
+}
+out.push(input);
+}
+return out;
+}
+/* 把 JSON.parse 的 position 翻译成人话的行列 */
+function jsonPos(text, msg){
+const m = /position\s+(\d+)/i.exec(String(msg || ''));
+if(!m) return '';
+const pos = Number(m[1]);
+const before = text.slice(0, pos);
+const line = before.split('\n').length;
+const col = pos - (before.lastIndexOf('\n') + 1) + 1;
+return '（出错位置约在第 ' + line + ' 行、第 ' + col + ' 列）';
+}
+/* 按既有口径复算某日：摄入 / 运动消耗 / 净缺口（复用 sumFoods / sumEx / bmrActive，不改口径） */
+function dayStats(dateStr){
+const rec = state.days[dateStr];
+if(!rec) return null;
+const w = (Number(rec.weight) > 0 ? Number(rec.weight) : profileWeight());
+const intake = sumFoods(rec.foods);
+const burn = sumEx(rec.exercises, w);
+const tdee = bmrActive() * Number(state.profile.activity) + burn;
+return { intake: intake.kcal, burn: burn, tdee: tdee, gap: tdee - intake.kcal, w: w };
+}
+function doImport(){
+const box = $('impResult');
+const raw = ($('impText').value || '').trim();
+if(!raw){
+box.innerHTML = '<span class="bad">输入框是空的。</span><div>请把助理给的 JSON 粘贴到上方文本框后再点导入。</div>';
+toast('请先粘贴 JSON'); return;
+}
+let parsed;
+try{ parsed = JSON.parse(raw); }
+catch(err){
+box.innerHTML = '<span class="bad">JSON 解析失败：' + esc(err.message) + '</span> ' + esc(jsonPos(raw, err.message)) +
+'<div class="small">常见原因：末尾多了一个逗号、引号用了中文引号 “ ”、括号没闭合、或者外面套了说明文字。' +
+'只粘贴纯 JSON（以 { 或 [ 开头）即可。</div>';
+toast('JSON 解析失败'); return;
+}
+const list = normDays(parsed);
+if(!list.length){
+box.innerHTML = '<span class="bad">没识别出任何一天的数据。</span><div>请确认 JSON 是单天对象、对象数组，或 <code>{"days":{...}}</code> 这三种之一。</div>';
+toast('未识别到数据'); return;
+}
+const today = ymd(new Date());
+const log = [], bad = [];
+let nDate = 0, nFood = 0, nEx = 0;
+list.forEach(function(o, i){
+if(!o || typeof o !== 'object'){ bad.push('第 ' + (i + 1) + ' 项不是对象，已跳过'); return; }
+const dRaw = (o.date != null ? String(o.date).trim() : '') || today;
+if(!/^\d{4}-\d{2}-\d{2}$/.test(dRaw)){ bad.push('第 ' + (i + 1) + ' 项日期「' + esc(dRaw) + '」不是 YYYY-MM-DD 格式，已跳过'); return; }
+const foods = [], fbad = [];
+(o.foods || o.food_list || []).forEach(function(f){
+const r = normFood(f);
+if(!r) return;
+if(r.__bad){ fbad.push(r.name + ' —— ' + r.why); return; }
+foods.push(r);
+});
+const exs = [], ebad = [];
+(o.exercises || o.exs || o.exercise || []).forEach(function(x){
+const r = normEx(x);
+if(!r) return;
+if(r.__bad){ ebad.push(r.name + ' —— ' + r.why); return; }
+exs.push(r);
+});
+/* 字段级覆盖：键「出现」才覆盖，没出现保留原值。
+   例外 1：键存在且为空数组 [] —— 视为显式清空。
+   例外 2：键存在、原数组非空，但所有条目都不合法（如缺 kcal）—— 视为无效输入，保留原值，不静默清空。 */
+const fsrc = Array.isArray(o.foods) ? o.foods : (Array.isArray(o.food_list) ? o.food_list : null);
+const esrc = Array.isArray(o.exercises) ? o.exercises : (Array.isArray(o.exs) ? o.exs : (Array.isArray(o.exercise) ? o.exercise : null));
+const hasFoods = (fsrc !== null);
+const hasExs   = (esrc !== null);
+const hasW = (o.weight !== undefined);
+const hasF = (o.fat !== undefined);
+/* 是否「有东西可写」：以键是否出现为准，而不是以归一化后是否非空为准 ——
+   否则 exercises:[]（显式清空）会被误判成「没有任何有效条目」而整条跳过。 */
+if(!hasFoods && !hasExs && !hasW && !hasF){
+bad.push(dRaw + '：foods / exercises / weight / fat 一个都没传，已跳过'); return;
+}
+const old = state.days[dRaw] || {};
+const oldF = (old.foods || []).length, oldE = (old.exercises || []).length;
+const foodsVoid = hasFoods && fsrc.length > 0 && foods.length === 0;
+const exsVoid   = hasExs   && esrc.length > 0 && exs.length === 0;
+const useFoods = hasFoods && !foodsVoid;
+const useExs   = hasExs   && !exsVoid;
+state.days[dRaw] = {
+foods: useFoods ? foods : (old.foods || []),
+exercises: useExs ? exs : (old.exercises || []),
+weight: hasW ? (Number(o.weight) > 0 ? Number(o.weight) : null) : (old.weight != null ? old.weight : null),
+fat: hasF ? (Number(o.fat) > 0 ? Number(o.fat) : null) : (old.fat != null ? old.fat : null)
+};
+nDate++; nFood += useFoods ? foods.length : 0; nEx += useExs ? exs.length : 0;
+const s = dayStats(dRaw);
+/* 报告：四个字段逐项说明是「覆盖」还是「保留」，保留的也要写出来 */
+function fieldLine(label, given, applied, nowN, oldN, srcN){
+let t;
+if(!given) t = '未传，保留原 ' + oldN + ' 条';
+else if(!applied) t = '传入的 ' + srcN + ' 条全部无效，已保留原 ' + oldN + ' 条';
+else if(nowN === 0 && oldN > 0) t = '显式清空（原 ' + oldN + ' 条已删除）';
+else t = '写入 ' + nowN + ' 条' + (oldN && oldN !== nowN ? '（原 ' + oldN + ' 条已覆盖）' : (oldN === nowN && oldN > 0 ? '（覆盖同数量的原 ' + oldN + ' 条）' : ''));
+return label + '：' + t;
+}
+function numLine(label, given, val, oldVal, unit){
+let t;
+if(!given) t = '未传，保留原 ' + (oldVal != null ? n1(oldVal) + unit : '（空）');
+else if(val == null) t = '传入无效值，已保留原 ' + (oldVal != null ? n1(oldVal) + unit : '（空）');
+else t = '写入 ' + n1(val) + unit + (oldVal != null && Number(oldVal) !== Number(val) ? '（原 ' + n1(oldVal) + unit + ' 已覆盖）' : '');
+return label + '：' + t;
+}
+log.push('<li><b>' + dRaw + '</b><br>' +
+fieldLine('foods', hasFoods, useFoods, state.days[dRaw].foods.length, oldF, hasFoods ? fsrc.length : 0) + '<br>' +
+fieldLine('exercises', hasExs, useExs, state.days[dRaw].exercises.length, oldE, hasExs ? esrc.length : 0) + '<br>' +
+numLine('weight', hasW, state.days[dRaw].weight, old.weight != null ? old.weight : null, 'kg') + '<br>' +
+numLine('fat', hasF, state.days[dRaw].fat, old.fat != null ? old.fat : null, '%') +
+'<br><span class="small">摄入 <b>' + n0(s.intake) + '</b> kcal ｜ 运动消耗 <b>' + n0(s.burn) + '</b> kcal ｜ 净缺口 <b>' +
+(s.gap >= 0 ? n0(s.gap) : '盈余 ' + n0(Math.abs(s.gap))) + '</b> kcal</span></li>');
+fbad.forEach(function(m){ bad.push(dRaw + ' 食物「' + esc(m) + '」，该条已跳过'); });
+ebad.forEach(function(m){ bad.push(dRaw + ' 运动「' + esc(m) + '」，该条已跳过'); });
+});
+if(!nDate){
+box.innerHTML = '<span class="bad">没有任何一天被写入。</span><ul>' + bad.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>';
+toast('导入失败'); return;
+}
+save();
+loadDateIntoForm($('dDate').value);
+renderAll();
+box.innerHTML = '<span class="ok">导入完成 · 涉及 ' + nDate + ' 个日期 · 本次写入食物 ' + nFood + ' 条 · 运动 ' + nEx + ' 条</span>' +
+'<ul>' + log.join('') + '</ul>' +
+(bad.length ? '<span class="warn">另有 ' + bad.length + ' 条未导入：</span><ul>' + bad.map(function(x){ return '<li>' + x + '</li>'; }).join('') + '</ul>' : '') +
+'<div class="small">字段语义：foods / exercises / weight / fat 四个字段统一为「有传才覆盖、没传保留原值」；传入空数组 [] 视为显式清空。已写入本机 localStorage。</div>';
+toast('已导入 ' + nDate + ' 个日期');
+}
+function exportJSON(){
+const out = JSON.stringify(state, null, 1);
+$('impText').value = out;
+try{ $('impText').select(); }catch(e){}
+const n = Object.keys(state.days || {}).length;
+$('impResult').innerHTML = '<span class="ok">已导出当前全部数据到上方输入框：' + n + ' 天记录 · ' + out.length + ' 字符</span>' +
+'<div class="small">已自动全选，按 Ctrl / ⌘ + C 复制后发给助理即可。</div>';
+toast('已导出 ' + n + ' 天记录');
+}
+function bindSync(){
+$('btnImport').addEventListener('click', doImport);
+$('btnExportJson').addEventListener('click', exportJSON);
+$('btnImpClear').addEventListener('click', function(){
+$('impText').value = ''; $('impResult').innerHTML = ''; toast('已清空输入框');
+});
+}
+(function init(){
+if(!load()) seedAll();
+buildDatalists();
+fillProfile();
+bindProfile();
+bindActions();
+bindSync();
+$('dDate').value = ymd(new Date());
+loadDateIntoForm($('dDate').value);
+renderAll();
+})();
+</script>
+</body>
+</html>
