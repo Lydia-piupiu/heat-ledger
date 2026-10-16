@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "note": "热量台账远程数据源。days 以日期为键，每条含 foods/exercises/weight/fat/__t；__t 为该记录的更新时间（ISO 8601），页面按天比较 __t，远程较新才覆盖本机。",
+  "updatedAt": "2026-10-16T10:48:57+08:00",
+  "days": {}
+}

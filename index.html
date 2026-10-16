@@ -201,7 +201,7 @@ body{font-size:13.5px;}
 <header class="top">
 <div class="t-main">
 <h1 id="appTitle">每日摄入消耗台账</h1>
-<div class="sub" id="appSub">Eat · Move · Weigh — 摄入 / 消耗 / 体重 逐日核算 &nbsp;|&nbsp; 数据保存在本机浏览器（localStorage）</div>
+<div class="sub" id="appSub">Eat · Move · Weigh — 摄入 / 消耗 / 体重 逐日核算 &nbsp;|&nbsp; 数据保存在本机浏览器（localStorage）· 打开时自动合并仓库 data.json</div>
 </div>
 <div class="top-actions">
 <button class="btn sm" id="btnExport">导出 CSV</button>
@@ -479,6 +479,15 @@ body{font-size:13.5px;}
 <button class="btn sm" id="btnImpClear">清空输入框</button>
 </div>
 <div class="imp-log" id="impResult"></div>
+<div class="small" style="margin-top:10px;border-top:1px dashed #d8dee6;padding-top:8px;">
+<b>仓库数据源</b>：页面打开时自动拉取仓库里的 <code>data.json</code> 并与本机合并——助理 push 之后你刷新页面即可看到，不用再手动粘贴。<br>
+合并规则按「天」比较时间戳 <code>__t</code>：<b>远程更新才写入，本机改过的一律保留</b>；首次同步会给本机存量记录补时间戳，历史数据不会被静默改写。
+</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
+<button class="btn sm" id="btnSyncRemote">立即同步</button>
+<button class="btn sm" id="btnForceRemote">以远程为准覆盖本机</button>
+</div>
+<div class="imp-log" id="remoteLog"></div>
 </section>
 </div><!-- /pageMe -->
 <datalist id="dlFoodAll"></datalist>
@@ -602,6 +611,7 @@ FOOD_DB.forEach(f => { FOOD_MAP[f[0]] = {unit:f[1], per:f[2], kcal:f[3], p:f[4],
 const EX_MAP = {};
 EX_DB.forEach(e => { EX_MAP[e[0]] = e[1]; });
 const LS_KEY = 'daily_intake_ledger_v1';
+const REMOTE_INIT_KEY = LS_KEY + '_remote_init';
 /* 参数定案：年龄改由 birthYear 推算（不再存 age，避免与出生年打架）；
    BMR 实测优先、公式仅作参考；活动系数由 1.2 改为 1.375。 */
 const DEFAULT_PROFILE = { sex:'female', birthYear:1995, height:163, weight:61,
@@ -1271,7 +1281,7 @@ const e = readEntry();
 if(!e.date){ toast('请先选择日期'); return; }
 const hasData = e.foods.length || e.exercises.length || e.weight || e.fat;
 if(!hasData){ toast('当日无任何记录，未保存'); return; }
-state.days[e.date] = { foods:e.foods, exercises:e.exercises, weight:e.weight, fat:e.fat };
+state.days[e.date] = { foods:e.foods, exercises:e.exercises, weight:e.weight, fat:e.fat, __t:new Date().toISOString() };
 if(e.weight){ state.profile.weight = e.weight; $('pWeight').value = e.weight; }
 save(); renderAll();
 $('entryHint').textContent = '已保存 · ' + new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'});
@@ -1471,7 +1481,8 @@ state.days[dRaw] = {
 foods: useFoods ? foods : (old.foods || []),
 exercises: useExs ? exs : (old.exercises || []),
 weight: hasW ? (Number(o.weight) > 0 ? Number(o.weight) : null) : (old.weight != null ? old.weight : null),
-fat: hasF ? (Number(o.fat) > 0 ? Number(o.fat) : null) : (old.fat != null ? old.fat : null)
+fat: hasF ? (Number(o.fat) > 0 ? Number(o.fat) : null) : (old.fat != null ? old.fat : null),
+__t: new Date().toISOString()
 };
 nDate++; nFood += useFoods ? foods.length : 0; nEx += useExs ? exs.length : 0;
 const s = dayStats(dRaw);
@@ -1514,6 +1525,72 @@ box.innerHTML = '<span class="ok">导入完成 · 涉及 ' + nDate + ' 个日期
 '<div class="small">字段语义：foods / exercises / weight / fat 四个字段统一为「有传才覆盖、没传保留原值」；传入空数组 [] 视为显式清空。已写入本机 localStorage。</div>';
 toast('已导入 ' + nDate + ' 个日期');
 }
+/* ============ 仓库数据源同步（data.json） ============
+   规则：按天比较 __t；远程较新才覆盖本机，本机改过的永远保留。
+   首次成功同步时给本机存量记录补时间戳，避免历史数据被远程改写。 */
+const REMOTE_URL = './data.json';
+function stampOf(d){ return (d && typeof d.__t === 'string' && d.__t) ? d.__t : ''; }
+function cleanDay(r, fallbackT){
+return {
+foods: Array.isArray(r && r.foods) ? r.foods : [],
+exercises: Array.isArray(r && r.exercises) ? r.exercises : [],
+weight: (r && r.weight != null) ? r.weight : null,
+fat: (r && r.fat != null) ? r.fat : null,
+__t: stampOf(r) || fallbackT || new Date().toISOString()
+};
+}
+function backfillStamps(){
+const now = new Date().toISOString();
+let n = 0;
+Object.keys(state.days).forEach(function(d){
+if(!stampOf(state.days[d])){ state.days[d].__t = now; n++; }
+});
+return n;
+}
+function mergeRemoteDays(rdays, force){
+const res = { added:0, updated:0, kept:0, skipped:0 };
+Object.keys(rdays || {}).forEach(function(d){
+if(!/^\d{4}-\d{2}-\d{2}$/.test(d)) return;
+const r = rdays[d] || {}, l = state.days[d];
+if(!l){ state.days[d] = cleanDay(r); res.added++; return; }
+const rt = stampOf(r), lt = stampOf(l);
+if(!force){
+if(lt && rt && String(lt) >= String(rt)){ res.kept++; return; }
+if(!rt){ res.skipped++; return; }
+}
+state.days[d] = cleanDay(r, lt);
+res.updated++;
+});
+return res;
+}
+async function syncRemote(force, silent){
+const log = $('remoteLog');
+try{
+const res = await fetch(REMOTE_URL + '?_t=' + Date.now(), {cache:'no-store'});
+if(!res.ok) throw new Error('HTTP ' + res.status + '（未找到 data.json）');
+const j = await res.json();
+const rdays = (j && (j.days || j.records)) || null;
+if(!rdays) throw new Error('data.json 里没有 days 字段');
+if(!localStorage.getItem(REMOTE_INIT_KEY)){
+const bn = backfillStamps();
+try{ localStorage.setItem(REMOTE_INIT_KEY, new Date().toISOString()); }catch(e){}
+if(bn) console.log('[heat-ledger] 已给本机 ' + bn + ' 天存量记录补时间戳');
+}
+const r = mergeRemoteDays(rdays, !!force);
+save(); renderAll();
+const txt = '已合并仓库 data.json：新增 ' + r.added + ' 天 / 更新 ' + r.updated + ' 天 / 本机保留 ' + r.kept + ' 天' +
+(r.skipped ? (' / 跳过 ' + r.skipped + ' 天（远程无时间戳）') : '') +
+(j && j.updatedAt ? (' · 远程更新于 ' + j.updatedAt) : '');
+if(log) log.innerHTML = '<span class="ok">' + txt + '</span>';
+if(!silent) toast('同步完成');
+return r;
+}catch(e){
+if(log) log.innerHTML = '<span class="bad">远程同步未生效：' + esc(String((e && e.message) || e)) + '</span>' +
+'<div class="small">本地 file:// 打开、或仓库里还没有 data.json 时会这样，不影响本机记录正常使用。</div>';
+if(!silent) toast('远程同步失败');
+return null;
+}
+}
 function exportJSON(){
 const out = JSON.stringify(state, null, 1);
 $('impText').value = out;
@@ -1526,6 +1603,10 @@ toast('已导出 ' + n + ' 天记录');
 function bindSync(){
 $('btnImport').addEventListener('click', doImport);
 $('btnExportJson').addEventListener('click', exportJSON);
+$('btnSyncRemote').addEventListener('click', function(){ syncRemote(false, false); });
+$('btnForceRemote').addEventListener('click', function(){
+if(confirm('确定用仓库 data.json 覆盖本机同日记录？本机这些天的内容会被远程版本替换。')) syncRemote(true, false);
+});
 $('btnImpClear').addEventListener('click', function(){
 $('impText').value = ''; $('impResult').innerHTML = ''; toast('已清空输入框');
 });
@@ -1540,6 +1621,7 @@ bindSync();
 $('dDate').value = ymd(new Date());
 loadDateIntoForm($('dDate').value);
 renderAll();
+syncRemote(false, true);
 })();
 </script>
 </body>
