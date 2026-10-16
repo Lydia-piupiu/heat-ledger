@@ -205,8 +205,6 @@ body{font-size:13.5px;}
 </div>
 <div class="top-actions">
 <button class="btn sm" id="btnExport">导出 CSV</button>
-<button class="btn sm" id="btnSeed">重置为示例数据</button>
-<button class="btn sm" id="btnClearSeed">清空示例数据</button>
 <button class="btn sm danger" id="btnClear">清空全部</button>
 </div>
 </header>
@@ -613,7 +611,6 @@ const EX_MAP = {};
 EX_DB.forEach(e => { EX_MAP[e[0]] = e[1]; });
 const LS_KEY = 'daily_intake_ledger_v1';
 const REMOTE_INIT_KEY = LS_KEY + '_remote_init';
-const NO_SEED_KEY = LS_KEY + '_no_seed';
 /* 参数定案：年龄改由 birthYear 推算（不再存 age，避免与出生年打架）；
    BMR 实测优先、公式仅作参考；活动系数由 1.2 改为 1.375。 */
 const DEFAULT_PROFILE = { sex:'female', birthYear:1995, height:163, weight:61,
@@ -648,71 +645,6 @@ return false;
 function ymd(d){
 const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), dd = String(d.getDate()).padStart(2,'0');
 return y+'-'+m+'-'+dd;
-}
-function daysAgo(n){ const d = new Date(); d.setHours(12,0,0,0); d.setDate(d.getDate()-n); return d; }
-const DAY_TEMPLATES = [
-{f:[['燕麦片（干）',40],['脱脂牛奶',250],['鸡蛋',2]],
-l:[['米饭（熟）',150],['鸡胸肉（熟）',120],['西兰花',150],['食用油',8]],
-d:[['红薯（蒸）',150],['三文鱼',100],['菠菜',150]],
-s:[['希腊酸奶（无糖）',150]],
-e:[['快走（6km/h）',40]]},
-{f:[['全麦面包',80],['鸡蛋',2],['美式咖啡',1]],
-l:[['糙米饭（熟）',150],['牛里脊（瘦）',120],['芦笋',120]],
-d:[['玉米（煮）',180],['基围虾',120],['生菜',150]],
-s:[['苹果',180]],
-e:[['力量训练（中等）',35],['慢走（3km/h）',20]]},
-{f:[['白粥',350],['鸡蛋',1],['香干',50]],
-l:[['面条（煮）',200],['鸡腿肉（去皮熟）',100],['大白菜',150]],
-d:[['豆腐（北）',150],['鳕鱼',100],['秋葵',120]],
-s:[['无糖酸奶',150]],
-e:[['瑜伽（哈他）',45]]},
-{f:[['包子（肉馅）',1],['豆浆（无糖）',250]],
-l:[['米饭（熟）',130],['猪里脊',110],['番茄',150],['食用油',10]],
-d:[['紫薯（蒸）',150],['鸡蛋',1],['菠菜',150]],
-s:[['蓝莓',100]],
-e:[['跑步（8km/h）',25],['拉伸 / 柔韧训练',10]]},
-{f:[['馒头',100],['脱脂牛奶',250],['鸡蛋',1]],
-l:[['荞麦面（干）',80],['金枪鱼（水浸）',100],['黄瓜',150]],
-d:[['土豆（蒸）',150],['鸡胸肉（熟）',100],['西兰花',150]],
-s:[['蛋白粉（乳清）',1]],
-e:[['HIIT 高强度间歇',20],['快走（5km/h）',30]]},
-{f:[['紫薯（蒸）',150],['鸡蛋',2],['美式咖啡',1]],
-l:[['米饭（熟）',150],['三文鱼',120],['海带（鲜）',100],['食用油',8]],
-d:[['南瓜',200],['基围虾',120]],
-s:[['希腊酸奶（无糖）',150]],
-e:[['游泳（蛙泳，休闲）',35]]},
-{f:[['燕麦片（干）',40],['全脂牛奶',250],['香蕉',100]],
-l:[['糙米饭（熟）',140],['鸡胸肉（熟）',130],['胡萝卜',100],['西兰花',100]],
-d:[['玉米（煮）',150],['豆腐（北）',120],['生菜',150]],
-s:[['杏仁',20]],
-e:[['跳绳（中速）',12],['快走（6km/h）',25]]}
-];
-const WEIGHT_SEQ = [62.4,62.2,62.3,62.0,61.9,61.8,61.6,61.7,61.5,61.4,61.3,61.2,61.0];
-function makeFood(name, amount){
-const info = FOOD_MAP[name] || {unit:'g', per:100, kcal:0, p:0, f:0, c:0};
-return { name, amount, kcal:info.kcal, p:info.p, f:info.f, c:info.c, per:info.per, unit:info.unit };
-}
-function makeEx(name, minutes){
-return { name, minutes, met: EX_MAP[name] != null ? EX_MAP[name] : 5 };
-}
-function buildSeed(){
-const days = {};
-for(let i=13;i>=1;i--){
-const t = DAY_TEMPLATES[(13-i) % DAY_TEMPLATES.length];
-const foods = [];
-t.f.concat(t.l, t.d, t.s).forEach(function(x){
-if(!x[1]) return;
-const nm = x[0].replace('虾仁·基围虾','基围虾');
-foods.push(makeFood(nm, x[1]));
-});
-const exercises = t.e.map(function(e){ return makeEx(e[0], e[1]); });
-days[ymd(daysAgo(i))] = { foods, exercises, weight: WEIGHT_SEQ[13-i], fat: null, __seed:true };
-}
-return days;
-}
-function seedAll(){
-state = { profile:{...DEFAULT_PROFILE}, days: buildSeed() };
-save();
 }
 const KCAL_PER_KG_FAT = 7700;
 function sumFoods(list){
@@ -1320,22 +1252,6 @@ renderCalc(); renderChart();
 });
 $('dFat').addEventListener('input', renderCalc);
 $('btnExport').addEventListener('click', exportCSV);
-$('btnSeed').addEventListener('click', function(){
-const n = Object.keys(state.days).length;
-if(!confirm('即将用内置示例数据覆盖「我的台账」。\n当前已有 ' + n + ' 天记录，覆盖后无法恢复。\n\n确定继续吗？')) return;
-if(!confirm('最后确认：真的要重写这 ' + n + ' 天记录吗？此操作不可撤销。')) return;
-seedAll(); fillProfile(); $('dDate').value = ymd(new Date()); loadDateIntoForm($('dDate').value); renderAll();
-toast('已重置为示例数据（13 天）');
-});
-$('btnClearSeed').addEventListener('click', function(){
-const seedDays = Object.keys(state.days).filter(function(d){ return state.days[d] && state.days[d].__seed; });
-if(!seedDays.length){ toast('没有示例数据（历史记录都是真实录入的）'); return; }
-if(!confirm('即将删除 ' + seedDays.length + ' 天的内置示例数据，你自己录入的记录不受影响。\n\n确定继续吗？')) return;
-seedDays.forEach(function(d){ delete state.days[d]; });
-try{ localStorage.setItem(NO_SEED_KEY, '1'); }catch(e){}
-save(); $('dDate').value = ymd(new Date()); loadDateIntoForm($('dDate').value); renderAll();
-toast('已清空 ' + seedDays.length + ' 天示例数据');
-});
 $('btnClear').addEventListener('click', function(){
 const n = Object.keys(state.days).length;
 if(!n){ toast('当前没有记录'); return; }
@@ -1343,6 +1259,7 @@ if(!confirm('即将删除「我的台账」的全部 ' + n + ' 天记录，删�
 if(!confirm('最后确认：删除全部 ' + n + ' 天记录？')) return;
 state.days = {}; save(); $('dDate').value = ymd(new Date()); loadDateIntoForm($('dDate').value); renderAll();
 toast('已清空');
+syncRemote(false, true);
 });
 $('tblHist').querySelector('tbody').addEventListener('click', function(ev){
 const tr = ev.target.closest('tr'); if(!tr) return;
@@ -1623,7 +1540,7 @@ $('impText').value = ''; $('impResult').innerHTML = ''; toast('已清空输入�
 });
 }
 (function init(){
-if(!load()){ try{ if(!localStorage.getItem(NO_SEED_KEY)) seedAll(); }catch(e){ seedAll(); } }
+load();
 buildDatalists();
 fillProfile();
 bindProfile();
